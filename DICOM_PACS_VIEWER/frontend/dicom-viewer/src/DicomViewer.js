@@ -1,7 +1,7 @@
 // DicomViewer.js
 import React, { useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchImages, setPatientId, setCurrentIndex, setMetadata } from './viewerSlice';
+import { fetchImages, setPatientId, setCurrentIndex, setMetadata } from './ViewerSlice';
 
 import axios from 'axios';
 import cornerstone from 'cornerstone-core';
