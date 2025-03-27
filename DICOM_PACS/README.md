@@ -4,6 +4,14 @@ Instructions:
     
         myenv\Scripts\activate
 
+If is not already created you have the requirements.txt file that you can use to install the right modules:
+
+        python -m venv myenv
+
+        myenv\Scripts\activate
+
+        python -m pip install -r requirements.txt  
+        
 Then in this case to run the pacs use:
 
 1. Run the PACS
