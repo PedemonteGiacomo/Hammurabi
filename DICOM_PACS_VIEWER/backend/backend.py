@@ -1,3 +1,4 @@
+# backend.py
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from pynetdicom import AE, evt, StoragePresentationContexts
@@ -9,30 +10,36 @@ from pydicom.dataset import Dataset
 import os
 import time
 import logging
+import threading
 
 # Enable debug logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Initialize Flask app with a static folder
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
-# PACS connection details
+# --- PACS + AE Titles ---
 PACS_AE_TITLE = "MYPACS"
 PACS_IP = "127.0.0.1"
 PACS_PORT = 104
 
-# Client AE details (for receiving images)
 CLIENT_AE_TITLE = "TESTSCU2"
 CLIENT_PORT = 11119
 
-# Global variable to track the SCP server instance (for receiving images)
+# Global variable to track the SCP server instance
 scp_server = None
+
+# Keep track of ongoing or completed retrievals in a dict
+# c_move_status[patient_id] = { 'done': bool, 'error': str or None, 'thread': Thread, ... }
+c_move_status = {}
 
 # ---------------------------
 # SCP (Storage) functions
 # ---------------------------
 def handle_store(event):
+    """
+    Handler for incoming C-STORE requests. Save DICOM to disk.
+    """
     ds = event.dataset
     ds.file_meta = event.file_meta
     patient_id = ds.get("PatientID", "unknown").strip()
@@ -45,14 +52,15 @@ def handle_store(event):
 
 def start_scp_server():
     global scp_server
+    if scp_server is not None:
+        # Already running
+        return
     ae = AE(ae_title=CLIENT_AE_TITLE)
-    # Add all expected storage contexts (as SCP)
-    for context in StoragePresentationContexts[:50]:
+    for context in StoragePresentationContexts:
         ae.add_supported_context(context.abstract_syntax, scp_role=True, scu_role=False)
     handlers = [(evt.EVT_C_STORE, handle_store)]
     logging.info(f"Starting DICOM C-STORE SCP on port {CLIENT_PORT} with AE Title {CLIENT_AE_TITLE}")
     scp_server = ae.start_server(("0.0.0.0", CLIENT_PORT), block=False, evt_handlers=handlers)
-    return scp_server
 
 def stop_scp_server():
     global scp_server
@@ -61,114 +69,155 @@ def stop_scp_server():
         scp_server.shutdown()
         scp_server = None
 
-def wait_for_files(folder, timeout=10, consecutive=2, poll_interval=0.5):
+# ----------------------------------
+# Background thread for the C-MOVE
+# ----------------------------------
+def run_cmove(patient_id):
     """
-    Poll the folder until the number of DICOM files remains the same for a given number
-    of consecutive polls or until timeout is reached.
+    This function runs in a thread. It performs the C-FIND (to confirm patient exists)
+    and then the C-MOVE to retrieve the images. We store the success/failure in
+    c_move_status[patient_id].
     """
-    stable_count = 0
-    previous_count = -1
-    start_time = time.time()
-    current_files = []
-    while time.time() - start_time < timeout:
-        if os.path.exists(folder):
-            current_files = [fname for fname in os.listdir(folder) if fname.endswith('.dcm')]
-            current_count = len(current_files)
-            if current_count == previous_count:
-                stable_count += 1
-            else:
-                stable_count = 0
-                previous_count = current_count
-            if stable_count >= consecutive:
-                break
-        time.sleep(poll_interval)
-    return current_files
+    try:
+        # 1) Associate for C-FIND
+        ae_find = AE(ae_title="MY_CLIENT")
+        ae_find.add_requested_context(PatientRootQueryRetrieveInformationModelFind)
+        assoc_find = ae_find.associate(PACS_IP, PACS_PORT, ae_title=PACS_AE_TITLE)
+        if not assoc_find.is_established:
+            raise RuntimeError("Could not associate with PACS for C-FIND")
 
-# ---------------------------
-# API Endpoint
-# ---------------------------
-@app.route('/api/images', methods=['GET'])
-def get_images():
-    patient_id = request.args.get('patientId')
-    if not patient_id:
-        return jsonify({'error': 'PatientID is required'}), 400
-    patient_id = patient_id.strip()
-    image_urls = []
-
-    # (Re)start our SCP server to receive images
-    stop_scp_server()
-    start_scp_server()
-    time.sleep(1)  # Give a moment for SCP to start
-
-    # 1. First association: send a C-FIND to verify the patient exists.
-    ae_find = AE(ae_title="MY_CLIENT")
-    ae_find.add_requested_context(PatientRootQueryRetrieveInformationModelFind)
-    logging.info("Associating with PACS for C-FIND...")
-    assoc_find = ae_find.associate(PACS_IP, PACS_PORT, ae_title=PACS_AE_TITLE)
-    if assoc_find.is_established:
         query_ds = Dataset()
         query_ds.QueryRetrieveLevel = "PATIENT"
         query_ds.PatientID = patient_id
         logging.info("Sending C-FIND for PatientID: %s", patient_id)
+
         found = False
-        try:
-            for status, identifier in assoc_find.send_c_find(query_ds, PatientRootQueryRetrieveInformationModelFind):
-                logging.debug("C-FIND Response: %s, Identifier: %s", status, identifier)
-                if status and status.Status in (0xFF00, 0xFF01):
-                    found = True
-                    break
-        except Exception as e:
-            logging.error("Error during C-FIND: %s", str(e))
+        for status, identifier in assoc_find.send_c_find(query_ds, PatientRootQueryRetrieveInformationModelFind):
+            if status and status.Status in (0xFF00, 0xFF01):
+                found = True
+                break
         assoc_find.release()
+
         if not found:
-            stop_scp_server()
-            return jsonify({'images': []})
-    else:
-        stop_scp_server()
-        return jsonify({'error': 'Could not associate with PACS for C-FIND'}), 500
-    
-    # 2. Second association: send a C-MOVE request to retrieve images.
-    ae_move = AE(ae_title="MY_CLIENT_MOVE")
-    # Only request the MOVE context here
-    ae_move.add_requested_context(PatientRootQueryRetrieveInformationModelMove)
-    logging.info("Associating with PACS for C-MOVE...")
-    assoc_move = ae_move.associate(PACS_IP, PACS_PORT, ae_title=PACS_AE_TITLE)
-    if assoc_move.is_established:
+            raise ValueError(f"PatientID {patient_id} not found on PACS.")
+
+        # 2) Start C-MOVE
+        ae_move = AE(ae_title="MY_CLIENT_MOVE")
+        ae_move.add_requested_context(PatientRootQueryRetrieveInformationModelMove)
+        assoc_move = ae_move.associate(PACS_IP, PACS_PORT, ae_title=PACS_AE_TITLE)
+        if not assoc_move.is_established:
+            raise RuntimeError("Could not associate with PACS for C-MOVE")
+
         move_ds = Dataset()
         move_ds.QueryRetrieveLevel = "PATIENT"
         move_ds.PatientID = patient_id
-        logging.info("Sending C-MOVE for PatientID: %s to %s", patient_id, CLIENT_AE_TITLE)
-        try:
-            completed = False
-            for status, identifier in assoc_move.send_c_move(
-                move_ds,
-                move_aet=CLIENT_AE_TITLE,
-                query_model=PatientRootQueryRetrieveInformationModelMove
-            ):
-                if status:
-                    status_code = status.Status
-                    logging.info("C-MOVE Response: Status 0x{0:04X}".format(status_code))
-                    # You may wish to check for pending (0xFF00) statuses here.
-                    if status_code == 0x0000:
-                        completed = True
-            if not completed:
-                logging.error("C-MOVE failed or was incomplete.")
-        except Exception as e:
-            logging.error("Error during C-MOVE: %s", str(e))
-        assoc_move.release()
-    else:
-        stop_scp_server()
-        return jsonify({'error': 'Could not associate with PACS for C-MOVE'}), 500
 
-    # 3. Wait for all images to be received
+        logging.info("Sending C-MOVE for PatientID: %s to AE: %s", patient_id, CLIENT_AE_TITLE)
+
+        completed = False
+        for status, identifier in assoc_move.send_c_move(
+            move_ds,
+            move_aet=CLIENT_AE_TITLE,
+            query_model=PatientRootQueryRetrieveInformationModelMove
+        ):
+            if status:
+                status_code = status.Status
+                logging.info("C-MOVE Response: Status 0x{0:04X}".format(status_code))
+                # 0x0000 = success
+                if status_code == 0x0000:
+                    completed = True
+
+        assoc_move.release()
+
+        if not completed:
+            raise RuntimeError("C-MOVE did not complete successfully.")
+
+        # If we get here, it's done with no errors
+        logging.info(f"C-MOVE for PatientID {patient_id} completed.")
+        c_move_status[patient_id]['done'] = True
+
+    except Exception as e:
+        logging.error(f"Error in run_cmove thread for patient {patient_id}: {e}")
+        c_move_status[patient_id]['done'] = True
+        c_move_status[patient_id]['error'] = str(e)
+    finally:
+        # Optionally stop SCP if you only want it running per retrieval
+        # (If you want to keep it always on, remove this line.)
+        stop_scp_server()
+
+
+# ----------------------------------
+# Endpoints
+# ----------------------------------
+@app.route("/api/start_retrieve", methods=["GET"])
+def start_retrieve():
+    """
+    1) Start up the SCP server if not running
+    2) Spawn a background thread to do the C-FIND + C-MOVE
+    3) Immediately return {"status": "started"} or error
+    """
+    patient_id = request.args.get("patientId", "").strip()
+    if not patient_id:
+        return jsonify({"error": "Missing patientId"}), 400
+
+    # Clean or create output folder
     dest_folder = os.path.join("static", f"retrieved_{patient_id}")
-    files = wait_for_files(dest_folder)
+    if os.path.exists(dest_folder):
+        # You might want to remove old files or not, up to you.
+        pass
+    else:
+        os.makedirs(dest_folder, exist_ok=True)
+
+    # Keep track in global dict
+    c_move_status[patient_id] = {
+        'done': False,
+        'error': None,
+        'thread': None
+    }
+
+    # Start the SCP to receive images
+    start_scp_server()
+
+    # Kick off the thread
+    thread = threading.Thread(target=run_cmove, args=(patient_id,), daemon=True)
+    c_move_status[patient_id]['thread'] = thread
+    thread.start()
+
+    return jsonify({"status": "started"}), 200
+
+
+@app.route("/api/images", methods=["GET"])
+def get_images():
+    """
+    Return the list of currently available images for a given patientId,
+    plus 'done' and 'error' status. The front-end can keep polling
+    this endpoint to see if new images have arrived yet.
+    """
+    patient_id = request.args.get("patientId", "").strip()
+    if not patient_id:
+        return jsonify({"error": "Missing patientId"}), 400
+
+    dest_folder = os.path.join("static", f"retrieved_{patient_id}")
+    if not os.path.exists(dest_folder):
+        return jsonify({"images": [], "done": False, "error": None})
+
+    # Gather all .dcm files
+    files = [f for f in os.listdir(dest_folder) if f.endswith(".dcm")]
+    image_urls = []
     for fname in files:
+        # Construct the absolute URL for the front-end
         full_url = request.host_url.rstrip('/') + f"/static/retrieved_{patient_id}/{fname}"
         image_urls.append(full_url)
 
-    stop_scp_server()
-    return jsonify({'images': image_urls})
+    done = c_move_status.get(patient_id, {}).get('done', True)
+    error = c_move_status.get(patient_id, {}).get('error', None)
+
+    return jsonify({
+        "images": image_urls,
+        "done": done,
+        "error": error
+    })
+
 
 if __name__ == "__main__":
     os.makedirs("static", exist_ok=True)

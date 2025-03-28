@@ -1,17 +1,23 @@
-// viewerSlice.js
+// ViewerSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
 /**
- * Async thunk: Fetch images for a given patient ID.
+ * Async thunk: Start retrieve (C-FIND + C-MOVE in background) for a patient,
+ * then keep polling for images until done.
  */
-export const fetchImages = createAsyncThunk(
-  'viewer/fetchImages',
-  async (patientId, { rejectWithValue }) => {
+export const startRetrieve = createAsyncThunk(
+  'viewer/startRetrieve',
+  async (patientId, { dispatch, rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/images?patientId=${patientId}`);
-      const urls = response.data.images || [];
-      return urls;
+      // 1) Start retrieval
+      const startResp = await axios.get(`/api/start_retrieve?patientId=${patientId}`);
+      if (startResp.data.error) {
+        return rejectWithValue(startResp.data.error);
+      }
+
+      // 2) Return patientId so we can do a polling loop in extraReducers
+      return { patientId };
     } catch (error) {
       return rejectWithValue(error.response?.data?.error || error.message);
     }
@@ -19,14 +25,28 @@ export const fetchImages = createAsyncThunk(
 );
 
 /**
- * Our main slice for viewer-related state:
- * - patientId
- * - images array
- * - currentIndex
- * - metadata (for the currently displayed image)
- * - status/loading
- * - error
+ * Async thunk: Poll the server for the list of images. We do NOT
+ * wait for them all before returning. The server returns any images so far.
+ * If done=true, we know we've received everything.
  */
+export const pollImages = createAsyncThunk(
+  'viewer/pollImages',
+  async (patientId, { rejectWithValue }) => {
+    try {
+      const resp = await axios.get(`/api/images?patientId=${patientId}`);
+      return {
+        images: resp.data.images || [],
+        done: resp.data.done,
+        error: resp.data.error,
+      };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error || error.message);
+    }
+  }
+);
+
+let pollInterval = null;
+
 const viewerSlice = createSlice({
   name: 'viewer',
   initialState: {
@@ -36,6 +56,7 @@ const viewerSlice = createSlice({
     metadata: null,
     status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,
+    done: false,    // indicates if the retrieval is done
   },
   reducers: {
     setPatientId: (state, action) => {
@@ -47,29 +68,87 @@ const viewerSlice = createSlice({
     setMetadata: (state, action) => {
       state.metadata = action.payload;
     },
+    clearImages: (state) => {
+      state.images = [];
+      state.currentIndex = 0;
+      state.metadata = null;
+      state.done = false;
+      state.error = null;
+    }
   },
   extraReducers: (builder) => {
-    builder
-      .addCase(fetchImages.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
-        state.images = [];
-        state.currentIndex = 0;
-        state.metadata = null;
-      })
-      .addCase(fetchImages.fulfilled, (state, action) => {
+    // START RETRIEVE
+    builder.addCase(startRetrieve.pending, (state) => {
+      state.status = 'loading';
+      state.error = null;
+      state.done = false;
+    });
+    builder.addCase(startRetrieve.fulfilled, (state, action) => {
+      state.status = 'loading'; 
+      // We remain in "loading" because we haven't got the images yet
+      // We'll poll in the background
+    });
+    builder.addCase(startRetrieve.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload || 'Failed to start retrieval';
+    });
+
+    // POLL IMAGES
+    builder.addCase(pollImages.pending, (state) => {
+      // no change needed or:
+      // state.status = 'loading';
+    });
+    builder.addCase(pollImages.fulfilled, (state, action) => {
+      // Update the images array, done status, etc.
+      const { images, done, error } = action.payload;
+      // If new images arrived, we update state.images
+      state.images = images;
+      if (error) {
+        state.error = error;
+      }
+      if (done) {
+        state.done = true;
         state.status = 'succeeded';
-        state.images = action.payload; // array of image URLs
-        // Reset everything else so user sees the first loaded image
-        state.currentIndex = 0;
-        state.metadata = null;
-      })
-      .addCase(fetchImages.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload || 'Failed to fetch images';
-      });
+      } else {
+        // not done yet
+        state.status = 'loading';
+      }
+    });
+    builder.addCase(pollImages.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload || 'Failed to poll images';
+    });
   },
 });
 
-export const { setPatientId, setCurrentIndex, setMetadata } = viewerSlice.actions;
+// Export actions
+export const { setPatientId, setCurrentIndex, setMetadata, clearImages } = viewerSlice.actions;
+
+// A helper to start polling in an interval
+export const beginPolling = (patientId) => (dispatch, getState) => {
+  // Clear any existing poll
+  if (pollInterval) {
+    clearInterval(pollInterval);
+  }
+  pollInterval = setInterval(async () => {
+    const { viewer } = getState();
+    // if we've finished or encountered error, stop
+    if (viewer.done || viewer.status === 'failed') {
+      clearInterval(pollInterval);
+      pollInterval = null;
+      return;
+    }
+    // otherwise poll
+    dispatch(pollImages(patientId));
+  }, 2000); // e.g. every 2 seconds
+};
+
+// A helper to stop polling if needed
+export const stopPolling = () => () => {
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+};
+
 export default viewerSlice.reducer;

@@ -1,8 +1,17 @@
 // DicomViewer.js
 import React, { useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchImages, setPatientId, setCurrentIndex, setMetadata } from './ViewerSlice';
+import {
+  setPatientId,
+  setCurrentIndex,
+  setMetadata,
+  clearImages,
+  startRetrieve,
+  beginPolling,
+  stopPolling,
+} from './ViewerSlice';
 
+import { CircularProgress } from '@mui/material';
 import axios from 'axios';
 import cornerstone from 'cornerstone-core';
 import cornerstoneWADOImageLoader from 'cornerstone-wado-image-loader';
@@ -46,7 +55,6 @@ const DicomViewer = () => {
   const dispatch = useDispatch();
   const containerRef = useRef(null);
 
-  // Grab state from Redux
   const {
     patientId,
     images,
@@ -54,26 +62,26 @@ const DicomViewer = () => {
     metadata,
     status,
     error,
+    done
   } = useSelector((state) => state.viewer);
 
   // Attempt to load/display the current image each time currentIndex or images changes
   useEffect(() => {
     if (images.length > 0 && containerRef.current && currentIndex < images.length) {
-      cornerstone.enable(containerRef.current);
-      const imageId = `wadouri:${images[currentIndex]}`;
+      const element = containerRef.current;
+      cornerstone.enable(element);
 
+      const imageId = `wadouri:${images[currentIndex]}`;
       cornerstone
         .loadImage(imageId)
         .then((image) => {
-          cornerstone.displayImage(containerRef.current, image);
-          // Check if dataset is in cache
+          cornerstone.displayImage(element, image);
+          // check if dataset is in the wadouri cache
           const ds = cornerstoneWADOImageLoader.wadouri.dataSetCacheManager.get(imageId);
-
           if (ds) {
-            // Great, we have the dataset
             dispatch(setMetadata(extractAllMetadata(ds)));
           } else {
-            // Otherwise fetch it manually
+            // fallback to manual fetch
             axios
               .get(images[currentIndex], { responseType: 'arraybuffer' })
               .then((resp) => {
@@ -99,26 +107,44 @@ const DicomViewer = () => {
     }
   }, [images, currentIndex, dispatch]);
 
-  // Handler: dispatch an action to fetch images
+  // Cleanup when unmounting: stop polling
+  useEffect(() => {
+    return () => {
+      dispatch(stopPolling());
+    };
+  }, [dispatch]);
+
+  // Handler: dispatch an action to start the retrieve
   const handleSearch = () => {
     if (patientId.trim()) {
-      dispatch(fetchImages(patientId));
+      // Clear old images
+      dispatch(clearImages());
+      // Start background retrieve
+      dispatch(startRetrieve(patientId))
+        .unwrap()
+        .then(() => {
+          // Once started, begin polling
+          dispatch(beginPolling(patientId));
+        })
+        .catch((err) => {
+          console.error("Could not start retrieval:", err);
+        });
     }
   };
 
-  // UI events for stepping through images
   const handlePrev = () => {
     if (currentIndex > 0) {
       dispatch(setCurrentIndex(currentIndex - 1));
     }
   };
+
   const handleNext = () => {
     if (currentIndex < images.length - 1) {
       dispatch(setCurrentIndex(currentIndex + 1));
     }
   };
 
-  // For toggling DICOM metadata categories (optional; same as your original code)
+  // For toggling DICOM metadata categories
   const [selectedGroups, setSelectedGroups] = React.useState({});
   const toggleGroup = (groupName) => {
     setSelectedGroups((prev) => ({
@@ -127,9 +153,10 @@ const DicomViewer = () => {
     }));
   };
   const groupsToDisplay = () => {
-    const selected = Object.entries(selectedGroups).filter(([key, value]) => value);
-    // If no group selected, show all
-    if (selected.length === 0) return Object.keys(metadata || {});
+    const selected = Object.entries(selectedGroups).filter(([_, value]) => value);
+    if (selected.length === 0) {
+      return Object.keys(metadata || {});
+    }
     return selected.map(([groupName]) => groupName);
   };
 
@@ -147,11 +174,21 @@ const DicomViewer = () => {
             size="small"
             margin="normal"
           />
-          <Button variant="contained" onClick={handleSearch} disabled={status === 'loading'}>
+          <Button
+            variant="contained"
+            onClick={handleSearch}
+            disabled={status === 'loading'}
+          >
             Search
           </Button>
           {error && <Typography color="error" variant="body2">{error}</Typography>}
-          {status === 'loading' && <Typography>Loading...</Typography>}
+          {status === 'loading' && (
+           <Box display="flex" alignItems="center" mt={1}>
+             <CircularProgress size={24} />
+             <Typography sx={{ marginLeft: 2 }}>Loading all data...</Typography>
+           </Box>
+         )}          
+         {done && <Typography>Done retrieving images from PACS.</Typography>}
         </Grid>
 
         <Grid item xs={12} sm={8} md={9}>
@@ -171,13 +208,15 @@ const DicomViewer = () => {
             <Button
               variant="outlined"
               onClick={handleNext}
-              disabled={currentIndex >= images.length - 1}
+              disabled={currentIndex >= images.length - 1 || images.length === 0}
             >
               Next
             </Button>
-            <Typography variant="body2" sx={{ marginLeft: 2, display: 'inline-block' }}>
-              Showing image {currentIndex + 1} of {images.length}
-            </Typography>
+            {images.length > 0 && (
+              <Typography variant="body2" sx={{ marginLeft: 2, display: 'inline-block' }}>
+                Showing image {currentIndex + 1} of {images.length}
+              </Typography>
+            )}
           </Box>
         </Grid>
       </Grid>
@@ -202,7 +241,6 @@ const DicomViewer = () => {
             ))}
           </FormGroup>
 
-          {/* Table of selected metadata */}
           {groupsToDisplay().map((group) => (
             <Box key={group} mt={2}>
               <Typography variant="subtitle1">{group}</Typography>
