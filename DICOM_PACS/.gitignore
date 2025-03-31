@@ -1,0 +1,6 @@
+PACS/*.dcm
+
+retrieved_*
+retrieved_
+retrieved_*/*.dcm
+*.dcm

@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dicom-frontend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dicom-frontend
+  template:
+    metadata:
+      labels:
+        app: dicom-frontend
+    spec:
+      containers:
+      - name: dicom-frontend
+        image: localhost:5000/dicom-frontend:latest #host.docker.internal:5000
+        imagePullPolicy: Always
+        env:
+        - name: REACT_APP_BACKEND_URL
+          value: "http://127.0.0.1:5001"
+        ports:
+        - containerPort: 80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: dicom-frontend-service
+spec:
+  selector:
+    app: dicom-frontend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP
