@@ -2,6 +2,14 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
+function getBackendUrl() {
+  // If our env.js was loaded, it sets window._env_
+  // Use that if it’s available; otherwise, fall back to a default
+  if (window._env_ && window._env_.REACT_APP_BACKEND_URL) {
+    return window._env_.REACT_APP_BACKEND_URL;
+  }
+  return 'http://localhost:5001'; // some default fallback
+}
 /**
  * Async thunk: Start retrieve (C-FIND + C-MOVE in background) for a patient,
  * then keep polling for images until done.
@@ -11,7 +19,8 @@ export const startRetrieve = createAsyncThunk(
   async (patientId, { dispatch, rejectWithValue }) => {
     try {
       // 1) Start retrieval
-      const startResp = await axios.get(`/api/start_retrieve?patientId=${patientId}`);
+      const backendUrl = getBackendUrl();
+      const startResp = await axios.get(`${backendUrl}/api/start_retrieve?patientId=${patientId}`);
       if (startResp.data.error) {
         return rejectWithValue(startResp.data.error);
       }
@@ -33,7 +42,8 @@ export const pollImages = createAsyncThunk(
   'viewer/pollImages',
   async (patientId, { rejectWithValue }) => {
     try {
-      const resp = await axios.get(`/api/images?patientId=${patientId}`);
+      const backendUrl = getBackendUrl();
+      const resp = await axios.get(`${backendUrl}/api/images?patientId=${patientId}`);
       return {
         images: resp.data.images || [],
         done: resp.data.done,

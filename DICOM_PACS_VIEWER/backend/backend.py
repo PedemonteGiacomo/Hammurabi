@@ -18,14 +18,15 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
-# --- PACS + AE Titles ---
-PACS_AE_TITLE = "MYPACS"
-PACS_IP = "127.0.0.1"
-PACS_PORT = 104
+# read from environment
+PACS_AE_TITLE = os.environ.get("PACS_AE_TITLE", "MYPACS")
+PACS_IP = os.environ.get("PACS_IP", "pacs-service")  # e.g. a Kubernetes service name
+PACS_PORT = int(os.environ.get("PACS_PORT", "104"))
 
-CLIENT_AE_TITLE = "TESTSCU2"
-CLIENT_PORT = 11119
+CLIENT_AE_TITLE = os.environ.get("CLIENT_AE_TITLE", "TESTSCU2")
+CLIENT_PORT = int(os.environ.get("CLIENT_PORT", "11119"))  # for this backend to receive C-MOVE images
 
+BACKEND_PORT = os.environ.get("BACKEND_PORT", "5001")
 # Global variable to track the SCP server instance
 scp_server = None
 
@@ -221,4 +222,4 @@ def get_images():
 
 if __name__ == "__main__":
     os.makedirs("static", exist_ok=True)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=BACKEND_PORT, debug=True)

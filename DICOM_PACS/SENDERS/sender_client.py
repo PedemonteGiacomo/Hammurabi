@@ -6,7 +6,7 @@ from pynetdicom.sop_class import CTImageStorage  # Aggiungi altri Storage SOP se
 
 # Configurazione PACS
 PACS_AE_TITLE = "MYPACS"
-PACS_IP = "127.0.0.1"
+PACS_IP = "localhost"
 PACS_PORT = 104
 
 # Cartelle

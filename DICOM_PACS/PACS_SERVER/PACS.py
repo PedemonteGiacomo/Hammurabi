@@ -1,21 +1,31 @@
-# pacs.py
+import os
+import logging
+from pydicom.dataset import Dataset
 from pynetdicom import AE, evt, StoragePresentationContexts, debug_logger
 from pynetdicom.sop_class import (
     PatientRootQueryRetrieveInformationModelFind,
     PatientRootQueryRetrieveInformationModelMove,
     CTImageStorage, MRImageStorage, ComputedRadiographyImageStorage
 )
-from pydicom.dataset import Dataset
-import logging
-import os
 
 # Enable debug logging
 debug_logger()
 logging.basicConfig(level=logging.DEBUG)
 
-# Configuration constants
-PACS_AE_TITLE = "MYPACS"
-PACS_PORT = 104
+# --- Environment variables ---
+PACS_AE_TITLE = os.environ.get("PACS_AE_TITLE", "MYPACS")
+PACS_PORT = int(os.environ.get("PACS_PORT", "104"))
+
+# For example, define environment variables for your two known AEs:
+TESTSCU_HOST = os.environ.get("TESTSCU_HOST", "127.0.0.1")
+TESTSCU_PORT = int(os.environ.get("TESTSCU_PORT", "11113"))
+TESTSCU2_HOST = os.environ.get("TESTSCU2_HOST", "127.0.0.1")
+TESTSCU2_PORT = int(os.environ.get("TESTSCU2_PORT", "11119"))
+
+KNOWN_AE_DESTINATIONS = {
+    "TESTSCU": (TESTSCU_HOST, TESTSCU_PORT),
+    "TESTSCU2": (TESTSCU2_HOST, TESTSCU2_PORT),
+}
 
 # In-memory list to hold received/stored DICOM datasets
 stored_datasets = []
@@ -60,11 +70,6 @@ def handle_move(event):
     ds = event.identifier
     dest_ae = event.move_destination
 
-    # Known destination mapping (update as needed)
-    KNOWN_AE_DESTINATIONS = {
-        "TESTSCU": ("127.0.0.1", 11113),
-        "TESTSCU2": ("127.0.0.1", 11119),  # e.g. your backend's SCP port
-    }
     if dest_ae not in KNOWN_AE_DESTINATIONS:
         logging.error(f"Unknown move destination: {dest_ae}")
         yield (0xA801, None)  # Move destination unknown

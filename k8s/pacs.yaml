@@ -1,0 +1,50 @@
+# Example of a Deployment in Kubernetes
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pacs-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pacs
+  template:
+    metadata:
+      labels:
+        app: pacs
+    spec:
+      containers:
+      - name: pacs
+        image: localhost:5000/my-pacs:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 104
+        env:
+        - name: PACS_AE_TITLE
+          value: "MYPACS"
+        - name: PACS_PORT
+          value: "104"
+        - name: TESTSCU_HOST
+          value: "TESTSCU"
+        - name: TESTSCU_PORT
+          value: "11113"
+        - name: TESTSCU2_HOST
+          value: "dicom-backend-service" 
+        - name: TESTSCU2_PORT
+          value: "11119"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pacs-service
+spec:
+  selector:
+    app: pacs
+  ports:
+  - protocol: TCP
+    port: 104
+    targetPort: 104
+  # If you want external DICOM clients to talk to this 
+  # from outside the cluster, you can use NodePort or LoadBalancer
+  type: ClusterIP
