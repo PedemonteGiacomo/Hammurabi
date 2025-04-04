@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: pacs
-        image: localhost:5000/my-pacs:latest
+        image: 544547773663.dkr.ecr.us-east-1.amazonaws.com/dicom-pacs:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 104
@@ -45,6 +45,17 @@ spec:
   - protocol: TCP
     port: 104
     targetPort: 104
-  # If you want external DICOM clients to talk to this 
-  # from outside the cluster, you can use NodePort or LoadBalancer
   type: ClusterIP
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: pacs-service-loadbalancer
+# spec:
+#   selector:
+#     app: pacs
+#   ports:
+#   - protocol: TCP
+#     port: 104
+#     targetPort: 104
+#   type: LoadBalancer   # Changed from ClusterIP to LoadBalancer

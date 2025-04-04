@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: localhost:5000/dicom-backend:latest
+        image: 544547773663.dkr.ecr.us-east-1.amazonaws.com/dicom-viewer-backend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5001
@@ -36,6 +36,7 @@ spec:
         
 
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -52,3 +53,23 @@ spec:
     port: 11119
     targetPort: 11119
   type: ClusterIP
+
+# ---
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: dicom-backend-loadbalancer
+# spec:
+#   selector:
+#     app: backend
+#   ports:
+#   - name: http
+#     protocol: TCP
+#     port: 5001
+#     targetPort: 5001
+#   - name: dicom-cstore
+#     protocol: TCP
+#     port: 11119
+#     targetPort: 11119
+#   type: LoadBalancer

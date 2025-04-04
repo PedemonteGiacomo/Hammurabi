@@ -14,11 +14,14 @@ spec:
     spec:
       containers:
       - name: dicom-frontend
-        image: localhost:5000/dicom-frontend:latest #host.docker.internal:5000
+        image: 544547773663.dkr.ecr.us-east-1.amazonaws.com/dicom-viewer-frontend:latest #localhost:5000
         imagePullPolicy: Always
         env:
         - name: REACT_APP_BACKEND_URL
-          value: "http://127.0.0.1:5001"
+          valueFrom:
+            configMapKeyRef:
+              name: service-endpoints
+              key: backend-url
         ports:
         - containerPort: 80
 
@@ -36,3 +39,19 @@ spec:
     port: 80
     targetPort: 80
   type: ClusterIP
+
+# ---
+
+# # load balancer service for frontend
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: dicom-frontend-loadbalancer
+# spec:
+#   selector:
+#     app: dicom-frontend
+#   ports:
+#   - protocol: TCP
+#     port: 80
+#     targetPort: 80
+#   type: LoadBalancer
