@@ -4,6 +4,8 @@ metadata:
   name: service-endpoints
 data:
   # Use your backend load balancer DNS name
-  backend-url: "http://a89b8b236422d4cd3977252b3086e9f3-576205863.us-east-1.elb.amazonaws.com:5001"
+  backend-url: "http://localhost:5001"
+  
+  #"http://a89b8b236422d4cd3977252b3086e9f3-576205863.us-east-1.elb.amazonaws.com:5001"
 
 # kubectl apply -f backend_url_config.yaml
