@@ -2,10 +2,22 @@
 import React from 'react';
 import DicomMetadataPanel from './DicomMetadataPanel';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  metadata: {
+    patientId?: string;
+    patientName?: string;
+    patientSex?: string;
+    studyDate?: string;
+    studyDescription?: string;
+    seriesDescription?: string;
+    manufacturer?: string;
+  } | null;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ metadata }) => {
   return (
-    <aside>
-      <DicomMetadataPanel />
+    <aside style={{ flex: 1 }}>
+      <DicomMetadataPanel metadata={metadata} />
     </aside>
   );
 };

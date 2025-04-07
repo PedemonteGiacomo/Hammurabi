@@ -2,8 +2,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { RenderingEngine, Types, Enums } from '@cornerstonejs/core';
 import { ToolGroupManager, ZoomTool, WindowLevelTool, addTool } from '@cornerstonejs/tools';
+import dicomParser from 'dicom-parser';
 
-// Define a type for a series
+// Define the type for a series.
 export interface SeriesInfo {
   seriesUID: string;
   seriesDescription: string;
@@ -12,21 +13,30 @@ export interface SeriesInfo {
 }
 
 interface ViewerProps {
-  series: SeriesInfo | null; // the series to be viewed
+  series: SeriesInfo | null; // The series to be viewed.
+  onMetadataExtracted?: (metadata: {
+    patientId?: string;
+    patientName?: string;
+    patientSex?: string;
+    studyDate?: string;
+    studyDescription?: string;
+    seriesDescription?: string;
+    manufacturer?: string;
+  }) => void; // Callback to send extracted metadata.
 }
 
-const Viewer: React.FC<ViewerProps> = ({ series }) => {
+const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [renderingEngine, setRenderingEngine] = useState<RenderingEngine | null>(null);
   const viewportId = 'VIEWPORT_1';
 
-  // Reset index when series changes
+  // Reset index when a new series is selected.
   useEffect(() => {
     setCurrentIndex(0);
   }, [series]);
 
-  // Create the viewport on mount
+  // Create the Cornerstone viewport once.
   useEffect(() => {
     const element = viewportRef.current;
     if (!element) return;
@@ -41,16 +51,13 @@ const Viewer: React.FC<ViewerProps> = ({ series }) => {
     };
     engine.enableElement(viewportInput);
 
-    // Optionally, register and activate tools (window/level, zoom, scroll, etc.)
+    // Register and activate tools.
     addTool(WindowLevelTool);
     addTool(ZoomTool);
-    //addTool(StackScrollMouseWheelTool);
-
     const toolGroup = ToolGroupManager.createToolGroup('default');
     if (toolGroup) {
       toolGroup.addTool(WindowLevelTool.toolName);
       toolGroup.addTool(ZoomTool.toolName);
-      //toolGroup.addTool(StackScrollMouseWheelTool.toolName);
       toolGroup.addViewport(viewportId, engine.id);
       toolGroup.setToolActive(WindowLevelTool.toolName, {
         bindings: [{ mouseButton: 1 }],
@@ -65,26 +72,61 @@ const Viewer: React.FC<ViewerProps> = ({ series }) => {
     };
   }, []);
 
-  // Helper: Load and display the current image
-  const loadCurrentImage = useCallback(() => {
+  // Load and display the current image and extract metadata.
+  const loadCurrentImage = useCallback(async () => {
     if (!series || series.imageFilePaths.length === 0 || !renderingEngine) return;
 
     const filePath = series.imageFilePaths[currentIndex];
-    const imageId = `wadouri:${window.location.origin}${filePath}`;
+    const imageUrl = `${window.location.origin}${filePath.replace(/\s/g, '%20')}`;
+    const imageId = `wadouri:${imageUrl}`;
     console.log('Loading image:', imageId);
 
-    // Get the viewport and cast it to a StackViewport to access setStack.
-    const viewport = renderingEngine.getViewport(viewportId) as Types.IStackViewport;
-    viewport.setStack([imageId]);
-    viewport.render();
-  }, [series, currentIndex, renderingEngine]);
+    try {
+      // Fetch the raw DICOM data.
+      const response = await fetch(imageUrl);
+      const arrayBuffer = await response.arrayBuffer();
 
-  // Reload image whenever currentIndex changes
+      // Parse the DICOM data.
+      const dataSet = dicomParser.parseDicom(new Uint8Array(arrayBuffer));
+
+      // Extract metadata fields (update tag keys as needed).
+      const patientId = dataSet.string('x00100020') || 'Unknown';
+      const patientName = dataSet.string('x00100010') || 'Unknown';
+      const patientSex = dataSet.string('x00100040') || 'Unknown';
+      const studyDate = dataSet.string('x00080020') || 'Unknown';
+      const studyDescription = dataSet.string('x00081030') || 'Unknown';
+      const seriesDescription = dataSet.string('x0008103E') || 'Unknown';
+      const manufacturer = dataSet.string('x00080070') || 'Unknown';
+
+      const extractedMetadata = {
+        patientId,
+        patientName,
+        patientSex,
+        studyDate,
+        studyDescription,
+        seriesDescription,
+        manufacturer,
+      };
+
+      // Pass the extracted metadata back via the callback.
+      if (onMetadataExtracted) {
+        onMetadataExtracted(extractedMetadata);
+      }
+
+      // Update the viewport’s stack and render.
+      const viewport = renderingEngine.getViewport(viewportId) as Types.IStackViewport;
+      viewport.setStack([imageId]);
+      viewport.render();
+    } catch (error) {
+      console.error('Error loading image or extracting metadata:', error);
+    }
+  }, [series, currentIndex, renderingEngine, onMetadataExtracted]);
+
+  // Reload the image when the current index changes.
   useEffect(() => {
     loadCurrentImage();
   }, [loadCurrentImage]);
 
-  // Next / Previous controls
   const goNext = () => {
     if (!series) return;
     setCurrentIndex((idx) => Math.min(idx + 1, series.imageFilePaths.length - 1));
@@ -94,7 +136,7 @@ const Viewer: React.FC<ViewerProps> = ({ series }) => {
   };
 
   return (
-    <section id="viewer">
+    <section id="viewer" style={{ flex: 1, marginRight: '1rem' }}>
       <h3 style={{ color: 'white' }}>Viewer</h3>
       <div
         id="dicomImageViewport"
