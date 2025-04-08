@@ -31,9 +31,14 @@ const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
 
   const viewportId = 'VIEWPORT_1';
 
-  // When a new series loads, reset the current index.
+  // When a new series loads, set the current index to the "key image" (middle image of the series)
   useEffect(() => {
-    setCurrentIndex(0);
+    if (series && series.imageFilePaths.length > 0) {
+      const keyIndex = Math.floor(series.imageFilePaths.length / 2) - 1;
+      setCurrentIndex(keyIndex);
+    } else {
+      setCurrentIndex(0);
+    }
   }, [series]);
 
   // Create the Cornerstone viewport
@@ -144,48 +149,24 @@ const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
 
   return (
     <div className="dicom-viewer-container">
-      {/* The DICOM viewport. */}
+      {/* The DICOM viewport */}
       <div ref={viewportRef} className="dicom-viewport" />
 
       {/* Navigation controls */}
       <div className="viewer-navigation">
-        {/* First image button */}
-        <button
-          className="icon-button nav-first"
-          onClick={goFirst}
-          disabled={!series || currentIndex <= 0}
-        >
+        <button className="icon-button nav-first" onClick={goFirst} disabled={!series || currentIndex <= 0}>
           <img src="/assets/first-svgrepo-com.svg" alt="First" />
         </button>
-
-        {/* Previous image button */}
-        <button
-          className="icon-button nav-prev"
-          onClick={goPrev}
-          disabled={!series || currentIndex <= 0}
-        >
+        <button className="icon-button nav-prev" onClick={goPrev} disabled={!series || currentIndex <= 0}>
           <img src="/assets/previous-svgrepo-com.svg" alt="Previous" />
         </button>
-
         <span className="viewer-nav-text">
           Showing image {currentIndex + 1} of {series && series.imageFilePaths.length}
         </span>
-
-        {/* Next image button */}
-        <button
-          className="icon-button nav-next"
-          onClick={goNext}
-          disabled={!series || currentIndex >= series.imageFilePaths.length - 1}
-        >
+        <button className="icon-button nav-next" onClick={goNext} disabled={!series || currentIndex >= series.imageFilePaths.length - 1}>
           <img src="/assets/next-svgrepo-com.svg" alt="Next" />
         </button>
-
-        {/* Last image button */}
-        <button
-          className="icon-button nav-last"
-          onClick={goLast}
-          disabled={!series || currentIndex >= series.imageFilePaths.length - 1}
-        >
+        <button className="icon-button nav-last" onClick={goLast} disabled={!series || currentIndex >= series.imageFilePaths.length - 1}>
           <img src="/assets/last-svgrepo-com.svg" alt="Last" />
         </button>
       </div>
