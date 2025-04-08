@@ -1,29 +1,21 @@
 // src/App.tsx
-import React, { useState } from 'react';
-import NestedDicomTable from './components/NestedDicomTable';
-import Viewer, { SeriesInfo } from './components/Viewer';
-import Sidebar from './components/Sidebar';
+import React from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route
+} from 'react-router-dom';
+import SelectionPage from './pages/SelectionPage';
+import ViewerPage from './pages/ViewerPage';
 
 function App() {
-  const [selectedSeries, setSelectedSeries] = useState<SeriesInfo | null>(null);
-  const [extractedMetadata, setExtractedMetadata] = useState<any>(null);
-
-  const handleSelectSeries = (series: SeriesInfo) => {
-    setSelectedSeries(series);
-    setExtractedMetadata(null); // reset metadata when a new series is selected
-  };
-
   return (
-    <>
-      <main style={{ display: 'flex', flexDirection: 'column' }}>
-        <NestedDicomTable onSelectSeries={handleSelectSeries} />
-        <div style={{ display: 'flex', flexDirection: 'row' }}>
-          <Viewer series={selectedSeries} onMetadataExtracted={setExtractedMetadata} />
-          <Sidebar metadata={extractedMetadata} />
-        </div>
-      </main>
-      <footer></footer>
-    </>
+    <Router>
+      <Routes>
+        <Route path="/" element={<SelectionPage />} />
+        <Route path="/viewer" element={<ViewerPage />} />
+      </Routes>
+    </Router>
   );
 }
 
