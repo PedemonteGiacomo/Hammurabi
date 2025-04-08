@@ -92,7 +92,7 @@ const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
       const arrayBuffer = await response.arrayBuffer();
 
       const dataSet = dicomParser.parseDicom(new Uint8Array(arrayBuffer));
-      
+
       // Extract metadata values.
       const patientId = dataSet.string('x00100020') || 'Unknown';
       const patientName = dataSet.string('x00100010') || 'Unknown';
@@ -150,7 +150,12 @@ const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
   return (
     <div className="dicom-viewer-container">
       {/* The DICOM viewport */}
-      <div ref={viewportRef} className="dicom-viewport" />
+      <div
+        ref={viewportRef}
+        className="dicom-viewport"
+        style={{ flex: 1, height: 'auto' }}
+      />
+
 
       {/* Navigation controls */}
       <div className="viewer-navigation">
