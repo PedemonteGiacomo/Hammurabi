@@ -1,7 +1,6 @@
 // src/components/NestedDicomTable.tsx
-
 import React, { useState } from "react";
-import dicomData from "../data/dicomData_updated.json"; // adjust path if needed
+import dicomData from "../data/dicomData_updated.json";
 
 // Type definitions
 export interface SeriesInfo {
@@ -25,14 +24,14 @@ export interface PatientInfo {
 
 /**
  * Props for NestedDicomTable:
- * - onSelectSeries: function called when the user clicks "View" on a series
+ * - onSelectSeries: function called when user clicks "View" on a series
  */
 interface NestedDicomTableProps {
   onSelectSeries: (series: SeriesInfo) => void;
 }
 
 const NestedDicomTable: React.FC<NestedDicomTableProps> = ({ onSelectSeries }) => {
-  // Expanded/collapsed state for patients and studies:
+  // Control which patients/studies are expanded
   const [expandedPatients, setExpandedPatients] = useState<string[]>([]);
   const [expandedStudies, setExpandedStudies] = useState<string[]>([]);
 
@@ -52,47 +51,53 @@ const NestedDicomTable: React.FC<NestedDicomTableProps> = ({ onSelectSeries }) =
     );
   };
 
-  // Convert the raw JSON data to a typed array
+  // Convert raw JSON data to typed array
   const patients: PatientInfo[] = dicomData as PatientInfo[];
 
   return (
-    <div style={{ margin: "1rem", color: "white" }}>
-      <h2>Nested DICOM Table</h2>
-      <table className="table table-dark table-bordered">
+    <div className="nested-dicom-table-container">
+      <table className="study-list-table">
         <thead>
           <tr>
-            <th>Patient ID</th>
-            <th>Study / Series Info</th>
+            <th style={{ width: '30%' }}>Patient ID</th>
+            <th>Studies / Series Info</th>
           </tr>
         </thead>
         <tbody>
           {patients.map((patient) => {
             const isPatientExpanded = expandedPatients.includes(patient.patientID);
+
             return (
               <React.Fragment key={patient.patientID}>
-                {/* Patient Row */}
-                <tr onClick={() => togglePatient(patient.patientID)} style={{ cursor: "pointer" }}>
+                {/* Top-level row for each Patient */}
+                <tr
+                  onClick={() => togglePatient(patient.patientID)}
+                  style={{ cursor: "pointer" }}
+                >
                   <td>{patient.patientID}</td>
                   <td>
                     {isPatientExpanded ? "▼ Hide Studies" : "▶ Show Studies"}
                   </td>
                 </tr>
 
+                {/* If expanded, show that patient’s studies */}
                 {isPatientExpanded &&
                   patient.studies.map((study) => {
-                    // Filter out series without any image file paths
+                    const isStudyExpanded = expandedStudies.includes(study.studyUID);
+                    // Filter out any series that have no images
                     const seriesWithImages = study.series.filter(
-                      (series) => series.imageFilePaths && series.imageFilePaths.length > 0
+                      (s) => s.imageFilePaths && s.imageFilePaths.length > 0
                     );
-
-                    // If there are no series with images in this study, skip rendering it.
+                    // If no series with images, skip
                     if (seriesWithImages.length === 0) return null;
 
-                    const isStudyExpanded = expandedStudies.includes(study.studyUID);
                     return (
                       <React.Fragment key={study.studyUID}>
-                        {/* Study Row */}
-                        <tr onClick={() => toggleStudy(study.studyUID)} style={{ cursor: "pointer" }}>
+                        {/* Study row */}
+                        <tr
+                          onClick={() => toggleStudy(study.studyUID)}
+                          style={{ cursor: "pointer" }}
+                        >
                           <td style={{ paddingLeft: "2rem" }}>
                             <strong>Study UID:</strong> {study.studyUID}
                           </td>
@@ -103,7 +108,7 @@ const NestedDicomTable: React.FC<NestedDicomTableProps> = ({ onSelectSeries }) =
                           </td>
                         </tr>
 
-                        {/* Series rows */}
+                        {/* Series rows (if expanded) */}
                         {isStudyExpanded &&
                           seriesWithImages.map((series) => (
                             <tr key={series.seriesUID}>

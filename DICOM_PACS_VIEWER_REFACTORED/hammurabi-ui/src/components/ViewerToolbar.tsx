@@ -3,48 +3,53 @@ import React from 'react';
 
 const ViewerToolbar: React.FC = () => {
   return (
-    <div id="toolbar">
-      <div className="container-fluid d-flex align-items-center" id="container-fluid-toolbar">
-        <ul className="d-flex list-unstyled mb-0">
-          <li className="toolbar_icon" id="esaote_file_button_list_item">
-            <img
-              id="esaote_file_button"
-              src="/assets/esaote_e.svg"
-              alt="Esaote Logo"
-            />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/zoom-in-svgrepo-com.svg" alt="Zoom icon" />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/rotate-svgrepo-com.svg" alt="Rotate icon" />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/pan-svgrepo-com.svg" alt="Pan icon" />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/note-svgrepo-com.svg" alt="Annotation icon" />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/measure-svgrepo-com.svg" alt="Measure icon" />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/fullscreen-svgrepo-com.svg" alt="Fullscreen icon" />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/flip-horizontal-svgrepo-com.svg" alt="Flip Horizontal icon" />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/flip-vertical-svgrepo-com.svg" alt="Flip Vertical icon" />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/reset-view-svgrepo-com.svg" alt="Reset View icon" />
-          </li>
-          <li>
-            <img className="toolbar_icon" src="/assets/info-svgrepo-com.svg" alt="Info icon" />
-          </li>
-        </ul>
-      </div>
+    <div className="viewer-toolbar-container">
+      <ul className="toolbar-list">
+        {/* "File" button: e.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/esaote_e.svg" alt="File" />
+        </li>
+        {/* Zoom icon: zoom-in-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/zoom-in-svgrepo-com.svg" alt="Zoom" />
+        </li>
+        {/* Rotate icon: rotate-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/rotate-svgrepo-com.svg" alt="Rotate" />
+        </li>
+        {/* Pan icon: pan-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/pan-svgrepo-com.svg" alt="Pan" />
+        </li>
+        {/* Note icon: note-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/note-svgrepo-com.svg" alt="Annotation" />
+        </li>
+        {/* Measure icon: measure-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/measure-svgrepo-com.svg" alt="Measure" />
+        </li>
+        {/* Fullscreen icon: fullscreen-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/fullscreen-svgrepo-com.svg" alt="Fullscreen" />
+        </li>
+        {/* Flip H: flip-horizontal-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/flip-horizontal-svgrepo-com.svg" alt="Flip H" />
+        </li>
+        {/* Flip V: flip-vertical-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/flip-vertical-svgrepo-com.svg" alt="Flip V" />
+        </li>
+        {/* Reset View: reset-view-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/reset-view-svgrepo-com.svg" alt="Reset" />
+        </li>
+        {/* Info icon: info-svgrepo-com.svg */}
+        <li className="toolbar-item">
+          <img src="/assets/info-svgrepo-com.svg" alt="Info" />
+        </li>
+      </ul>
     </div>
   );
 };

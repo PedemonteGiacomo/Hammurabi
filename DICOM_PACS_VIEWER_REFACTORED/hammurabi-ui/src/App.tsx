@@ -1,10 +1,6 @@
 // src/App.tsx
 import React from 'react';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route
-} from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import SelectionPage from './pages/SelectionPage';
 import ViewerPage from './pages/ViewerPage';
 

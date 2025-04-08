@@ -4,7 +4,6 @@ import { RenderingEngine, Types, Enums } from '@cornerstonejs/core';
 import { ToolGroupManager, ZoomTool, WindowLevelTool, addTool } from '@cornerstonejs/tools';
 import dicomParser from 'dicom-parser';
 
-// Define the type for a series.
 export interface SeriesInfo {
   seriesUID: string;
   seriesDescription: string;
@@ -13,7 +12,7 @@ export interface SeriesInfo {
 }
 
 interface ViewerProps {
-  series: SeriesInfo | null; // The series to be viewed.
+  series: SeriesInfo | null;
   onMetadataExtracted?: (metadata: {
     patientId?: string;
     patientName?: string;
@@ -22,21 +21,22 @@ interface ViewerProps {
     studyDescription?: string;
     seriesDescription?: string;
     manufacturer?: string;
-  }) => void; // Callback to send extracted metadata.
+  }) => void;
 }
 
 const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [renderingEngine, setRenderingEngine] = useState<RenderingEngine | null>(null);
+
   const viewportId = 'VIEWPORT_1';
 
-  // Reset index when a new series is selected.
+  // When a new series loads, reset the current index.
   useEffect(() => {
     setCurrentIndex(0);
   }, [series]);
 
-  // Create the Cornerstone viewport once.
+  // Create the Cornerstone viewport
   useEffect(() => {
     const element = viewportRef.current;
     if (!element) return;
@@ -54,11 +54,13 @@ const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
     // Register and activate tools.
     addTool(WindowLevelTool);
     addTool(ZoomTool);
+
     const toolGroup = ToolGroupManager.createToolGroup('default');
     if (toolGroup) {
       toolGroup.addTool(WindowLevelTool.toolName);
       toolGroup.addTool(ZoomTool.toolName);
       toolGroup.addViewport(viewportId, engine.id);
+
       toolGroup.setToolActive(WindowLevelTool.toolName, {
         bindings: [{ mouseButton: 1 }],
       });
@@ -72,24 +74,21 @@ const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
     };
   }, []);
 
-  // Load and display the current image and extract metadata.
+  // Load the current image and extract metadata.
   const loadCurrentImage = useCallback(async () => {
     if (!series || series.imageFilePaths.length === 0 || !renderingEngine) return;
 
     const filePath = series.imageFilePaths[currentIndex];
     const imageUrl = `${window.location.origin}${filePath.replace(/\s/g, '%20')}`;
     const imageId = `wadouri:${imageUrl}`;
-    console.log('Loading image:', imageId);
 
     try {
-      // Fetch the raw DICOM data.
       const response = await fetch(imageUrl);
       const arrayBuffer = await response.arrayBuffer();
 
-      // Parse the DICOM data.
       const dataSet = dicomParser.parseDicom(new Uint8Array(arrayBuffer));
-
-      // Extract metadata fields (update tag keys as needed).
+      
+      // Extract metadata values.
       const patientId = dataSet.string('x00100020') || 'Unknown';
       const patientName = dataSet.string('x00100010') || 'Unknown';
       const patientSex = dataSet.string('x00100040') || 'Unknown';
@@ -98,22 +97,18 @@ const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
       const seriesDescription = dataSet.string('x0008103E') || 'Unknown';
       const manufacturer = dataSet.string('x00080070') || 'Unknown';
 
-      const extractedMetadata = {
-        patientId,
-        patientName,
-        patientSex,
-        studyDate,
-        studyDescription,
-        seriesDescription,
-        manufacturer,
-      };
-
-      // Pass the extracted metadata back via the callback.
       if (onMetadataExtracted) {
-        onMetadataExtracted(extractedMetadata);
+        onMetadataExtracted({
+          patientId,
+          patientName,
+          patientSex,
+          studyDate,
+          studyDescription,
+          seriesDescription,
+          manufacturer,
+        });
       }
 
-      // Update the viewport’s stack and render.
       const viewport = renderingEngine.getViewport(viewportId) as Types.IStackViewport;
       viewport.setStack([imageId]);
       viewport.render();
@@ -122,37 +117,79 @@ const Viewer: React.FC<ViewerProps> = ({ series, onMetadataExtracted }) => {
     }
   }, [series, currentIndex, renderingEngine, onMetadataExtracted]);
 
-  // Reload the image when the current index changes.
   useEffect(() => {
     loadCurrentImage();
   }, [loadCurrentImage]);
+
+  // Navigation handlers.
+  const goFirst = () => {
+    if (!series) return;
+    setCurrentIndex(0);
+  };
+
+  const goPrev = () => {
+    if (!series) return;
+    setCurrentIndex((idx) => Math.max(idx - 1, 0));
+  };
 
   const goNext = () => {
     if (!series) return;
     setCurrentIndex((idx) => Math.min(idx + 1, series.imageFilePaths.length - 1));
   };
-  const goPrev = () => {
-    setCurrentIndex((idx) => Math.max(idx - 1, 0));
+
+  const goLast = () => {
+    if (!series) return;
+    setCurrentIndex(series.imageFilePaths.length - 1);
   };
 
   return (
-    <section id="viewer" style={{ flex: 1, marginRight: '1rem' }}>
-      <h3 style={{ color: 'white' }}>Viewer</h3>
-      <div
-        id="dicomImageViewport"
-        ref={viewportRef}
-        style={{ width: '512px', height: '512px', backgroundColor: 'black' }}
-      />
-      <div style={{ marginTop: '1rem' }}>
-        <button onClick={goPrev} disabled={!series}>Previous</button>
-        <button onClick={goNext} disabled={!series}>Next</button>
+    <div className="dicom-viewer-container">
+      {/* The DICOM viewport. */}
+      <div ref={viewportRef} className="dicom-viewport" />
+
+      {/* Navigation controls */}
+      <div className="viewer-navigation">
+        {/* First image button */}
+        <button
+          className="icon-button nav-first"
+          onClick={goFirst}
+          disabled={!series || currentIndex <= 0}
+        >
+          <img src="/assets/first-svgrepo-com.svg" alt="First" />
+        </button>
+
+        {/* Previous image button */}
+        <button
+          className="icon-button nav-prev"
+          onClick={goPrev}
+          disabled={!series || currentIndex <= 0}
+        >
+          <img src="/assets/previous-svgrepo-com.svg" alt="Previous" />
+        </button>
+
+        <span className="viewer-nav-text">
+          Showing image {currentIndex + 1} of {series && series.imageFilePaths.length}
+        </span>
+
+        {/* Next image button */}
+        <button
+          className="icon-button nav-next"
+          onClick={goNext}
+          disabled={!series || currentIndex >= series.imageFilePaths.length - 1}
+        >
+          <img src="/assets/next-svgrepo-com.svg" alt="Next" />
+        </button>
+
+        {/* Last image button */}
+        <button
+          className="icon-button nav-last"
+          onClick={goLast}
+          disabled={!series || currentIndex >= series.imageFilePaths.length - 1}
+        >
+          <img src="/assets/last-svgrepo-com.svg" alt="Last" />
+        </button>
       </div>
-      <div style={{ marginTop: '1rem', color: 'yellow' }}>
-        {series
-          ? `Viewing image ${currentIndex + 1} / ${series.imageFilePaths.length} in series ${series.seriesUID}`
-          : 'No series selected'}
-      </div>
-    </section>
+    </div>
   );
 };
 

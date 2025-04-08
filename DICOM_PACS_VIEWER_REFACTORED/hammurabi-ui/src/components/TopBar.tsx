@@ -3,26 +3,16 @@ import React from 'react';
 
 const TopBar: React.FC = () => {
   return (
-    <nav id="topbar" className="navbar navbar-expand-lg">
-      <div className="container-fluid">
-        {/* Esaote logo */}
+    <nav className="topbar-container">
+      <div className="topbar-content">
+        {/* For Esaote logo: `esaote.svg` */}
+        <img className="topbar-logo" src="/assets/esaote_vector.svg" alt="Esaote Logo" />
+        <div className="topbar-spacer" />
+        {/* If you have a user icon: e.g. user-circle-svgrepo-com.svg */}
         <img
-          id="esaote_logo_topbar"
-          src="/assets/esaote_vector.svg"
-          alt="Esaote Logo"
-        />
-
-        {/* Potential brand or collapsible nav could go here */}
-        <div className="collapse navbar-collapse" id="navbarNavDropdown">
-          {/* HAMMURABI LOGO??? (placeholder) */}
-        </div>
-
-        {/* User icon aligned right */}
-        <img
-          id="user_logo_topbar"
+          className="topbar-user-icon"
           src="/assets/user-circle-svgrepo-com.svg"
           alt="User Logo"
-          className="ms-auto"
         />
       </div>
     </nav>

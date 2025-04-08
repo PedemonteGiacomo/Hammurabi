@@ -14,7 +14,6 @@ interface DicomMetadataPanelProps {
 }
 
 const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => {
-  // Checkbox state for each metadata section.
   const [showPatient, setShowPatient] = useState(true);
   const [showStudy, setShowStudy] = useState(true);
   const [showSeries, setShowSeries] = useState(true);
@@ -27,10 +26,10 @@ const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => 
   };
 
   return (
-    <div id="DICOM_metadata_panel" style={{ flex: 1, padding: '1rem' }}>
-      <section id="buttons">
-        <h1>Select Info</h1>
-        <div className="container-fluid d-flex align-items-center" id="container-fluid-buttons">
+    <div className="dicom-metadata-panel">
+      <section>
+        <h4>Select Info</h4>
+        <div className="metadata-checkbox-row">
           <div className="form-check me-3">
             <input
               className="form-check-input"
@@ -39,7 +38,9 @@ const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => 
               checked={showPatient}
               onChange={handleCheckboxChange(setShowPatient)}
             />
-            <label className="form-check-label" htmlFor="patient_checkbox">Patient</label>
+            <label className="form-check-label" htmlFor="patient_checkbox">
+              Patient
+            </label>
           </div>
           <div className="form-check me-3">
             <input
@@ -49,7 +50,9 @@ const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => 
               checked={showStudy}
               onChange={handleCheckboxChange(setShowStudy)}
             />
-            <label className="form-check-label" htmlFor="study_checkbox">Study</label>
+            <label className="form-check-label" htmlFor="study_checkbox">
+              Study
+            </label>
           </div>
           <div className="form-check me-3">
             <input
@@ -59,7 +62,9 @@ const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => 
               checked={showSeries}
               onChange={handleCheckboxChange(setShowSeries)}
             />
-            <label className="form-check-label" htmlFor="series_checkbox">Series</label>
+            <label className="form-check-label" htmlFor="series_checkbox">
+              Series
+            </label>
           </div>
           <div className="form-check me-3">
             <input
@@ -69,15 +74,17 @@ const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => 
               checked={showEquipment}
               onChange={handleCheckboxChange(setShowEquipment)}
             />
-            <label className="form-check-label" htmlFor="equipment_checkbox">Equipment</label>
+            <label className="form-check-label" htmlFor="equipment_checkbox">
+              Equipment
+            </label>
           </div>
         </div>
       </section>
 
-      <div className="overflow-scroll" style={{ marginTop: '1rem' }}>
+      <div className="metadata-content">
         {metadata ? (
           <div>
-            <h2>Extracted Metadata</h2>
+            <h5>Extracted Metadata</h5>
             {showPatient && (
               <div>
                 <p><strong>Patient ID:</strong> {metadata.patientId}</p>

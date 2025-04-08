@@ -16,7 +16,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ metadata }) => {
   return (
-    <aside style={{ flex: 1 }}>
+    <aside className="viewer-sidebar">
+      <h3 className="sidebar-title">DICOM Metadata</h3>
       <DicomMetadataPanel metadata={metadata} />
     </aside>
   );
