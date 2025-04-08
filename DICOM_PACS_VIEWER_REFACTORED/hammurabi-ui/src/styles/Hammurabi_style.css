@@ -279,3 +279,25 @@ body {
 .metadata-content {
   margin-top: 1rem;
 }
+
+/* New styles to adjust the viewer and sidebar containers */
+.viewer-main-row {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+/* When a sidebar is displayed */
+.viewer-container.with-sidebar {
+  flex: 2;
+}
+
+/* When no sidebar is visible, the viewer takes full width */
+.viewer-container.full-width {
+  flex: 1;
+}
+
+/* Sidebar container */
+.sidebar-container {
+  flex: 1;
+}

@@ -1,52 +1,60 @@
 // src/components/ViewerToolbar.tsx
 import React from 'react';
 
-const ViewerToolbar: React.FC = () => {
+interface ViewerToolbarProps {
+  onToggleSidebar: () => void;
+  showSidebar: boolean;
+}
+
+const ViewerToolbar: React.FC<ViewerToolbarProps> = ({ onToggleSidebar, showSidebar }) => {
   return (
     <div className="viewer-toolbar-container">
       <ul className="toolbar-list">
-        {/* "File" button: e.svg */}
-        <li className="toolbar-item">
+        {/* File button */}
+        <li className="toolbar-item" title="File Menu">
           <img src="/assets/esaote_e.svg" alt="File" />
         </li>
-        {/* Zoom icon: zoom-in-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Zoom button */}
+        <li className="toolbar-item" title="Zoom In">
           <img src="/assets/zoom-in-svgrepo-com.svg" alt="Zoom" />
         </li>
-        {/* Rotate icon: rotate-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Rotate button */}
+        <li className="toolbar-item" title="Rotate">
           <img src="/assets/rotate-svgrepo-com.svg" alt="Rotate" />
         </li>
-        {/* Pan icon: pan-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Pan button */}
+        <li className="toolbar-item" title="Pan">
           <img src="/assets/pan-svgrepo-com.svg" alt="Pan" />
         </li>
-        {/* Note icon: note-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Annotation button */}
+        <li className="toolbar-item" title="Add Annotation">
           <img src="/assets/note-svgrepo-com.svg" alt="Annotation" />
         </li>
-        {/* Measure icon: measure-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Measure button */}
+        <li className="toolbar-item" title="Measure">
           <img src="/assets/measure-svgrepo-com.svg" alt="Measure" />
         </li>
-        {/* Fullscreen icon: fullscreen-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Fullscreen button */}
+        <li className="toolbar-item" title="Fullscreen">
           <img src="/assets/fullscreen-svgrepo-com.svg" alt="Fullscreen" />
         </li>
-        {/* Flip H: flip-horizontal-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Flip Horizontal */}
+        <li className="toolbar-item" title="Flip Horizontal">
           <img src="/assets/flip-horizontal-svgrepo-com.svg" alt="Flip H" />
         </li>
-        {/* Flip V: flip-vertical-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Flip Vertical */}
+        <li className="toolbar-item" title="Flip Vertical">
           <img src="/assets/flip-vertical-svgrepo-com.svg" alt="Flip V" />
         </li>
-        {/* Reset View: reset-view-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Reset View */}
+        <li className="toolbar-item" title="Reset View">
           <img src="/assets/reset-view-svgrepo-com.svg" alt="Reset" />
         </li>
-        {/* Info icon: info-svgrepo-com.svg */}
-        <li className="toolbar-item">
+        {/* Info icon: toggles the metadata panel */}
+        <li className="toolbar-item"
+            onClick={onToggleSidebar}
+            style={{ cursor: 'pointer' }}
+            title={showSidebar ? "Hide Metadata Panel" : "Show Metadata Panel"}>
           <img src="/assets/info-svgrepo-com.svg" alt="Info" />
         </li>
       </ul>

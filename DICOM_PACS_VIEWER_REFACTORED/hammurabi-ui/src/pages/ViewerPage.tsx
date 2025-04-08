@@ -14,6 +14,7 @@ const ViewerPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [extractedMetadata, setExtractedMetadata] = useState<any>(null);
+  const [showSidebar, setShowSidebar] = useState(true);
 
   const state = location.state as LocationState | undefined;
 
@@ -28,18 +29,23 @@ const ViewerPage: React.FC = () => {
     return null;
   }
 
-  // Example metadata or fallback
+  // Toggle the sidebar's visibility.
+  const toggleSidebar = () => {
+    setShowSidebar(prev => !prev);
+  };
+
+  // Example metadata fallback values
   const patientId = extractedMetadata?.patientId ?? '123';
   const studyDesc = extractedMetadata?.studyDescription ?? 'CT';
   const seriesDesc = extractedMetadata?.seriesDescription ?? '507';
-  const instanceNumber = '41'; // or from your code
+  const instanceNumber = '41';
 
   return (
     <div className="viewer-page-container">
-      {/* Red top bar */}
+      {/* Top bar */}
       <TopBar />
 
-      {/* "Black row" for Patient / Study / Series / Instance */}
+      {/* Info row displaying patient/study/series/instance details */}
       <div className="viewer-info-row">
         <div className="viewer-info-block">
           <span className="info-label">Patient ID</span>
@@ -59,16 +65,20 @@ const ViewerPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Red icon toolbar row */}
-      <ViewerToolbar />
+      {/* Toolbar with clickable icons including the info icon */}
+      <ViewerToolbar onToggleSidebar={toggleSidebar} showSidebar={showSidebar} />
 
-      {/* 
-        The main viewer row, with a limited or fixed height.
-        'limited-height' is a CSS class that will restrict this row's height.
-      */}
+      {/* Main viewer row */}
       <div className="viewer-main-row limited-height">
-        <Viewer series={state.series} onMetadataExtracted={setExtractedMetadata} />
-        <Sidebar metadata={extractedMetadata} />
+        {/* Adjust viewer container width based on sidebar presence */}
+        <div className={showSidebar ? "viewer-container with-sidebar" : "viewer-container full-width"}>
+          <Viewer series={state.series} onMetadataExtracted={setExtractedMetadata} />
+        </div>
+        {showSidebar && (
+          <div className="sidebar-container">
+            <Sidebar metadata={extractedMetadata} />
+          </div>
+        )}
       </div>
     </div>
   );
