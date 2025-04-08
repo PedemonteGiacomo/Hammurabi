@@ -77,6 +77,7 @@ const ViewerPage: React.FC = () => {
                     <Viewer series={state.series} onMetadataExtracted={setExtractedMetadata} />
                 </div>
                 {showSidebar && (
+                    // Add inline style so the sidebar also fills its parent container's height.
                     <div className="sidebar-container">
                         <Sidebar metadata={extractedMetadata} />
                     </div>

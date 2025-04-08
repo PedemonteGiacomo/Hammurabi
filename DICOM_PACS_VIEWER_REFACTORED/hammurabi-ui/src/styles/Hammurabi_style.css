@@ -284,6 +284,7 @@ body {
 .viewer-main-row {
   display: flex;
   flex-direction: row;
+  align-items: stretch;  /* Makes all flex children adopt the same height */
   gap: 1rem;
 }
 
@@ -297,7 +298,21 @@ body {
   flex: 1;
 }
 
-/* Sidebar container */
 .sidebar-container {
+  /* If the parent already controls the height (via flex: 1), these will automatically match */
   flex: 1;
+  /* Optionally, force 100% height in case some inner element does not inherit flex size */
+  height: 100%;
+}
+
+/* Make the sidebar (the actual panel inside the sidebar container) fill its container */
+.viewer-sidebar {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;  /* Allow vertical scrolling if the metadata content overflows */
+}
+
+/* Ensure the metadata panel itself fills the sidebar */
+.dicom-metadata-panel {
+  height: 100%;
 }
