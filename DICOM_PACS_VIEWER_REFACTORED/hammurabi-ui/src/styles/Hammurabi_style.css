@@ -1,12 +1,10 @@
 /* src/styles/Hammurabi_style.css */
 
-/* Import or define your custom font "Aptos" if available */
-/*
 @font-face {
   font-family: 'Aptos';
   src: url('/public/Aptos/Aptos.ttf') format('truetype');
 }
-*/
+
 
 body {
   background-color: #0d1117;

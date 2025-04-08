@@ -4,7 +4,6 @@ import ReactDOM from 'react-dom/client';
 import 'bootstrap/dist/css/bootstrap.min.css';
 // Our custom styles:
 import './styles/Hammurabi_style.css';
-import './index.css';
 import App from './App';
 
 // Import the initialization function for Cornerstone, if needed

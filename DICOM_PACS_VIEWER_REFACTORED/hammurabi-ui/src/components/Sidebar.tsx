@@ -11,7 +11,7 @@ interface SidebarProps {
     studyDescription?: string;
     seriesDescription?: string;
     manufacturer?: string;
-  } | null;
+  } | null; 
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ metadata }) => {
