@@ -2,13 +2,20 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Enable Windows support for long paths system-wide 
+**Windows 10 and Later**
+1. Open a PowerShell window and run `gpedit.msc`.
+2. Navigate to `Local Computer Policy > Computer Configuration > Administrative Templates > System > Filesystem`.
+3. Enable the setting `Enable Win32 long paths` (double click, then check radio button beside `Enabled` and click `Apply`).
+
 ## Available Scripts
 
-In the project directory, you can run:
+In the `hammurabi-ui` directory, run:
 
-### `npm start`
+### `npm install &&  npm install @craco/craco --save && npm install path-browserify && npm start`
 
-Runs the app in the development mode.\
+This will install the necessary dependencies and run the app in development mode.
+
 Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
 The page will reload if you make edits.\
