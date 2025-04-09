@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hammurabi-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hammurabi-ui
+  template:
+    metadata:
+      labels:
+        app: hammurabi-ui
+    spec:
+      containers:
+      - name: hammurabi-ui
+        image: hammurabi-ui-prod:latest
+        ports:
+        - containerPort: 80

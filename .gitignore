@@ -5,3 +5,8 @@ graphs
 other
 other/*
 *.pdf
+*/old/*
+*.log
+*/old/
+*/old
+*secret*
