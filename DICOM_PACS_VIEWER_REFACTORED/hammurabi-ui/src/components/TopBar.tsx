@@ -35,6 +35,7 @@ const TopBar: React.FC = () => {
     // For a full Cognito logout, you can also redirect to
     // https://<YOUR_DOMAIN>/logout?client_id=<CLIENT_ID>&logout_uri=<REDIRECT_URL>
     auth.removeUser();
+    
   };
 
   return (

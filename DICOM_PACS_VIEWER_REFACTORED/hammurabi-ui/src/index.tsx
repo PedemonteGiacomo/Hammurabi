@@ -8,11 +8,11 @@ import App from './App';
 import { initializeCornerstoneJS } from './cornerstoneSetup';
 
 const cognitoAuthConfig = {
-  authority: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_0YTYd5Hqj",
-  client_id: "3u6j3me5upiauqnqc3dvuoisga",
+  authority: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_LLk8IEqxB",
+  client_id: "6k05u15k2i32hnbajmso8fqoro",
   redirect_uri: "http://localhost:3000",
   response_type: "code",
-  scope: "email openid phone",
+  scope: "phone openid email",
 };
 
 initializeCornerstoneJS()
