@@ -1,25 +1,22 @@
-// src/components/TopBar.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
 /**
- * This TopBar:
- * 1. Shows your logo, linking back to "/".
- * 2. Displays a user icon that, when clicked, shows a pink dropdown.
- * 3. The dropdown has placeholders for Name, Title, and Hospital,
- *    plus a Log out button.
+ * TopBar Component:
+ * - Displays the logo (linked to home).
+ * - Shows a user icon that, when clicked, displays a pink dropdown containing the user's email and name,
+ *   plus a "Log out" button.
+ * - On "Log out" the user is redirected to AWS Cognito’s full logout endpoint (using environment variables)
+ *   with the federated parameter so that the Hosted UI clears any IdP sessions.
  */
 const TopBar: React.FC = () => {
   const auth = useAuth();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const toggleDropdown = () => {
-    setDropdownVisible(!dropdownVisible);
-  };
+  const toggleDropdown = () => setDropdownVisible(prev => !prev);
 
-  // Close the dropdown if user clicks outside it
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -30,26 +27,31 @@ const TopBar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Build the logout URL from environment variables.
+  const signOutRedirect = () => {
+    const clientId = process.env.REACT_APP_COGNITO_CLIENT_ID || "";
+    const logoutUri = process.env.REACT_APP_LOGOUT_URI || "";
+    const cognitoDomain = process.env.REACT_APP_COGNITO_DOMAIN || "";
+    // Adding &federated forces a full sign-out from federated IdPs.
+    const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}&federated`;
+    window.location.href = logoutUrl;
+  };
+
+  // Instead of calling auth.removeUser() locally (which might not clear all cookies),
+  // we simply redirect to Cognito's logout endpoint.
   const handleLogout = () => {
-    // In this example, we simply clear the local session.
-    // For a full Cognito logout, you can also redirect to
-    // https://<YOUR_DOMAIN>/logout?client_id=<CLIENT_ID>&logout_uri=<REDIRECT_URL>
-    auth.removeUser();
-    
+    signOutRedirect();
   };
 
   return (
     <nav className="topbar-container">
       <div className="topbar-content">
-        {/* Logo linking to home */}
+        {/* Logo linking back to home */}
         <Link to="/">
           <img className="topbar-logo" src="/assets/esaote_vector.svg" alt="Esaote Logo" />
         </Link>
-
-        {/* Spacer pushes the user icon to the right */}
         <div className="topbar-spacer" />
-
-        {/* User icon + pink dropdown */}
+        {/* User icon with dropdown */}
         <div style={{ position: 'relative' }}>
           <img
             className="topbar-user-icon"
@@ -58,44 +60,16 @@ const TopBar: React.FC = () => {
             onClick={toggleDropdown}
             style={{ cursor: 'pointer' }}
           />
-
           {dropdownVisible && (
-            <div
-              ref={dropdownRef}
-              style={{
-                position: 'absolute',
-                right: 0,
-                top: '100%',
-                backgroundColor: '#fbd9dc', // pink background
-                borderRadius: '8px',
-                padding: '1rem',
-                zIndex: 1000,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                minWidth: '200px',
-              }}
-            >
-                <div style={{ marginBottom: '0.5rem', color: 'black' }}>
+            <div ref={dropdownRef} className="topbar-dropdown">
+              <div style={{ marginBottom: '0.5rem', color: 'black' }}>
+                <strong>{auth.user?.profile.email}</strong>
+                <br />
                 <strong>
-                  {auth.user?.profile.email}
+                  {auth.user?.profile.given_name} {auth.user?.profile.family_name}
                 </strong>
-                <strong>
-                  {auth.user?.profile.given_name} {auth.user?.profile.family_name} 
-                </strong>
-                </div>
-
-
-
-              <button
-                style={{
-                  backgroundColor: '#464646',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '0.4rem 0.8rem',
-                  cursor: 'pointer',
-                }}
-                onClick={handleLogout}
-              >
+              </div>
+              <button className="logout-btn" onClick={handleLogout}>
                 Log out
               </button>
             </div>
