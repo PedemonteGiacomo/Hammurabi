@@ -1,15 +1,19 @@
 // src/pages/SelectionPage.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { setSelectedSeries } from '../zustand/store/viewerSlice';
 import TopBar from '../components/TopBar';
 import NestedDicomTable, { SeriesInfo } from '../components/NestedDicomTable';
 
 const SelectionPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  // When a series is selected, immediately navigate to the viewer page.
+  // When a series is selected, store it globally and navigate to the viewer page.
   const handleSelectSeries = (series: SeriesInfo) => {
-    navigate('/viewer', { state: { series } });
+    dispatch(setSelectedSeries(series));
+    navigate('/viewer');
   };
 
   return (

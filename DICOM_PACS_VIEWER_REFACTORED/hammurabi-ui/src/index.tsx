@@ -1,10 +1,12 @@
 // src/index.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { Provider } from 'react-redux';
 import { AuthProvider } from 'react-oidc-context';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Hammurabi_style.css';
 import App from './App';
+import store from './zustand/store/store';
 import { initializeCornerstoneJS } from './cornerstoneSetup';
 
 // Read Cognito settings from environment variables.
@@ -23,9 +25,11 @@ initializeCornerstoneJS()
 
     root.render(
       <React.StrictMode>
-        <AuthProvider {...cognitoAuthConfig}>
-          <App />
-        </AuthProvider>
+        <Provider store={store}>
+          <AuthProvider {...cognitoAuthConfig}>
+            <App />
+          </AuthProvider>
+        </Provider>
       </React.StrictMode>
     );
   })

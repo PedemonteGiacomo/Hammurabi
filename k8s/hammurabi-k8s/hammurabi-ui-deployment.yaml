@@ -14,9 +14,11 @@ spec:
     spec:
       containers:
       - name: hammurabi-ui
-        image: hammurabi-ui-prod:latest
+        image: localhost:5000/hammurabi-ui-prod:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
+        - containerPort: 80
         env:
           - name: REACT_APP_COGNITO_AUTHORITY
             value: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_LLk8IEqxB"
@@ -27,7 +29,7 @@ spec:
           - name: REACT_APP_COGNITO_SCOPE
             value: "phone openid email"
           - name: REACT_APP_LOGOUT_URI
-            value: "http://localhost:3000"
+            value: "http://localhost:3000/aws-signout"
           - name: REACT_APP_COGNITO_DOMAIN
             value: "https://us-east-1llk8ieqxb.auth.us-east-1.amazoncognito.com"
 ---
