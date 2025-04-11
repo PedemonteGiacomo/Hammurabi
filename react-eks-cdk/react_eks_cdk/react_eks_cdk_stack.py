@@ -7,59 +7,59 @@ from aws_cdk import (
 from constructs import Construct
 from aws_cdk.lambda_layer_kubectl_v32 import KubectlV32Layer
 
-
 class ReactEksCdkStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs):
         super().__init__(scope, construct_id, **kwargs)
-        
-        # Create a VPC with default configuration (spans 2 AZs by default)
+
+        # Create a VPC (default config spans 2 AZs)
         vpc = ec2.Vpc(self, "AppVPC", max_azs=2)
-        
+
         # Create the EKS Cluster on Fargate
         cluster = eks.Cluster(self, "FargateCluster",
             cluster_name="my-react-eks",
             vpc=vpc,
             version=eks.KubernetesVersion.V1_25,
-            default_capacity=0,  # No EC2 worker nodes; using Fargate
+            default_capacity=0,  # Use Fargate only
             kubectl_layer=KubectlV32Layer(self, "KubectlLayer")
         )
-        
-        # Add IAM user mapping for admin access
-        user = iam.User.from_user_arn(self, "MyUser", "arn:aws:iam::544547773663:user/giacomo_pedemonte")
+
+        # Map your IAM user for admin access
+        user = iam.User.from_user_arn(
+            self,
+            "MyUser",
+            "arn:aws:iam::544547773663:user/giacomo_pedemonte"
+        )
         cluster.aws_auth.add_user_mapping(user, groups=["system:masters"], username="giacomo_pedemonte")
-        
-        # Define Fargate profiles for the cluster
-        # Profile for the default namespace (application pods)
+
+        # Define Fargate profiles for both the app and system namespaces
         cluster.add_fargate_profile("AppFargateProfile",
             selectors=[{"namespace": "default"}]
         )
-        # Profile for the kube-system namespace (system pods including CoreDNS and ALB controller)
         cluster.add_fargate_profile("SystemFargateProfile",
             selectors=[{"namespace": "kube-system"}]
         )
-        
-        # Create an IAM OIDC provider for the cluster if it doesn't exist
+
+        # Create an IAM OIDC provider for the cluster if not already present
         if not cluster.open_id_connect_provider:
             cluster.add_iam_open_id_connect_provider()
-        
-        # Patch CoreDNS deployment to remove node affinity (so it can schedule on Fargate)
-        # This manifest adjusts the existing CoreDNS deployment in the kube-system namespace.
-        coredns_patch = cluster.add_manifest("CoreDNSAffinityPatch", {
-            "apiVersion": "apps/v1",
-            "kind": "Deployment",
-            "metadata": {
-                "name": "coredns",
-                "namespace": "kube-system"
-            },
-            "spec": {
-                "template": {
-                    "spec": {
-                        "affinity": {}  # Remove node affinity restrictions
+
+        # Patch the existing CoreDNS Deployment to remove node affinity using KubernetesPatch.
+        # This will update the 'spec.template.spec.affinity' field to an empty object.
+        core_dns_patch = eks.KubernetesPatch(self, "CoreDNSPatch",
+            cluster=cluster,
+            object_name="coredns",
+            object_namespace="kube-system",
+            patch={
+                "spec": {
+                    "template": {
+                        "spec": {
+                            "affinity": {}  # Remove any node affinity constraints
+                        }
                     }
                 }
             }
-        })
-        
+        )
+
         # Attach IAM policies to the role assumed by the AWS Load Balancer Controller.
         alb_policy = iam.Policy(self, "ALBControllerPolicy",
             statements=[
@@ -117,15 +117,14 @@ class ReactEksCdkStack(Stack):
                 )
             ]
         )
-        
-        # Create a service account for the AWS Load Balancer Controller in kube-system
+
         alb_sa = cluster.add_service_account("ALBControllerSA",
             name="aws-load-balancer-controller",
             namespace="kube-system"
         )
         alb_policy.attach_to_role(alb_sa.role)
-        
-        # Deploy the AWS Load Balancer Controller via a Helm chart
+
+        # Deploy the ALB Controller via Helm.
         alb_chart = cluster.add_helm_chart(
             "AWSLoadBalancerController",
             namespace="kube-system",
@@ -148,13 +147,13 @@ class ReactEksCdkStack(Stack):
                 }
             }
         )
-        # Ensure the ALB controller Helm chart is deployed after the CoreDNS patch is applied.
-        alb_chart.node.add_dependency(coredns_patch)
-        
-        # Define a label for the React application pods
+        # Ensure the ALB Controller is deployed only after the CoreDNS patch is applied.
+        alb_chart.node.add_dependency(core_dns_patch)
+
+        # Define a label for the React app pods.
         app_label = {"app": "react-webapp"}
-        
-        # Create the Deployment for the React application
+
+        # Create the Deployment for the React application.
         deployment = cluster.add_manifest("ReactAppDeployment", {
             "apiVersion": "apps/v1",
             "kind": "Deployment",
@@ -183,8 +182,8 @@ class ReactEksCdkStack(Stack):
                 }
             }
         })
-        
-        # Create the Service for the React application
+
+        # Create the Service for the React app.
         service = cluster.add_manifest("ReactAppService", {
             "apiVersion": "v1",
             "kind": "Service",
@@ -195,8 +194,8 @@ class ReactEksCdkStack(Stack):
                 "type": "ClusterIP"
             }
         })
-        
-        # Create the Ingress to expose the service via ALB
+
+        # Create the Ingress to expose the application via ALB.
         ingress = cluster.add_manifest("ReactAppIngress", {
             "apiVersion": "networking.k8s.io/v1",
             "kind": "Ingress",
@@ -231,5 +230,5 @@ class ReactEksCdkStack(Stack):
                 }]
             }
         })
-        # Ensure that the Ingress is created after the ALB Controller is available.
+        # Ensure the Ingress is created after the ALB Controller is ready.
         ingress.node.add_dependency(alb_chart)

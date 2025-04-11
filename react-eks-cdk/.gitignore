@@ -8,3 +8,13 @@ __pycache__
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# Custom additional files
+*.log
+*.tmp
+*.tmp.*
+*.cache
+*.cache.*
+*.pid
+*.pid.*
+*.out
