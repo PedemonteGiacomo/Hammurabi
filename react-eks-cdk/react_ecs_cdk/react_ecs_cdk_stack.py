@@ -12,6 +12,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 import time
+#from aws_cdk.aws_cloudfront import CfnInvalidation
 
 class ReactEcsCdkStack(Stack):
     def __init__(self, scope: Construct, id: str, **kwargs):
@@ -44,9 +45,9 @@ class ReactEcsCdkStack(Stack):
                     "REACT_APP_COGNITO_CLIENT_ID": "6k05u15k2i32hnbajmso8fqoro",
                     "REACT_APP_COGNITO_REGION": "us-east-1",
                     # Use HTTP here because the ALB is internal to CloudFront; CloudFront will serve HTTPS externally.
-                    "REACT_APP_COGNITO_REDIRECT_URI": "http://reacte-react-o1lruq85pnoc-624425096.us-east-1.elb.amazonaws.com",
+                    "REACT_APP_COGNITO_REDIRECT_URI": "https://depx7mmslfz65.cloudfront.net",
                     "REACT_APP_COGNITO_SCOPE": "phone openid email",
-                    "REACT_APP_LOGOUT_URI": "http://reacte-react-o1lruq85pnoc-624425096.us-east-1.elb.amazonaws.com/aws-signout",
+                    "REACT_APP_LOGOUT_URI": "https://depx7mmslfz65.cloudfront.net/aws-signout",
                     "REACT_APP_COGNITO_DOMAIN": "https://us-east-1llk8ieqxb.auth.us-east-1.amazoncognito.com",
                     # Dummy variable to force redeployment - you might use a timestamp or git commit hash.
                     "BUILD_TIMESTAMP": str(int(time.time()))
@@ -77,12 +78,27 @@ class ReactEcsCdkStack(Stack):
         distribution = cloudfront.Distribution(
             self, "ReactAppDistribution",
             default_behavior=cloudfront.BehaviorOptions(
-            origin=origins.LoadBalancerV2Origin(service.load_balancer,
-                    protocol_policy=cloudfront.OriginProtocolPolicy.HTTP_ONLY),
-            viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                origin=origins.LoadBalancerV2Origin(service.load_balancer,
+                        protocol_policy=cloudfront.OriginProtocolPolicy.HTTP_ONLY),
+                viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            )
         )
 
-        )
+        ## Create a CloudFront invalidation to clear the cache.
+        ## This is useful for forcing CloudFront to fetch the latest version of your app.
+        ## You can also use this to invalidate specific paths if needed.
+        ## Note: This will incur additional costs.
+        ## Can be also done directly in the AWS console: e.g.: https://us-east-1.console.aws.amazon.com/cloudfront/v4/home?region=us-east-1#/distributions/E1M4T6FUCY8V94/invalidations/
+        # CfnInvalidation(self, "DistributionInvalidation",
+        #     distribution_id=distribution.distribution_id,
+        #     invalidation_batch={
+        #         "Paths": {
+        #             "Quantity": 1,
+        #             "Items": ["/*"]
+        #         },
+        #         "CallerReference": f"invalidation-{int(time.time())}"
+        #     }
+        # )
         
         # Output the CloudFront domain name. Use this for your HTTPS endpoints.
         CfnOutput(self, "DistributionDomain", value=distribution.domain_name)
