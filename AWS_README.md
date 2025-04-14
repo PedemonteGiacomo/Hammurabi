@@ -1,4 +1,4 @@
-# AWS CDK Deployment Guide for React Application
+# AWS CDK Deployment Guide for React Application - Action to do cdk deploy ReactEcsCdkStack
 
 ## Initial Deployment
 From the root folder, execute:
@@ -62,3 +62,60 @@ cdk deploy ReactEcsCdkStack
 This will update the ECS Task Definition and deploy a new version of hammurabi-ui with the latest image.
 
 > Note: The deployment process typically takes a few minutes to complete. You can monitor the progress through the CloudFormation console or CLI output.
+
+# Second Version Setup Guide - Action to do cdk deploy ReactCdkCompleteStack
+
+## Prerequisites
+
+### Google Cloud Platform Configuration
+1. Navigate to Google Cloud Platform Console's Credentials section:
+    - URL: https://console.cloud.google.com/auth/clients/
+
+2. Download OAuth 2.0 credentials as `google_secrets.json` and place it in the stack deployment directory. Example format:
+```json
+{
+     "web": {
+          "client_id": "YOUR_CLIENT_ID",
+          "project_id": "hammurabi-platform",
+          "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+          "token_uri": "https://oauth2.googleapis.com/token",
+          "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+          "client_secret": "YOUR_CLIENT_SECRET",
+          "redirect_uris": [
+                "http://localhost:3000",
+                "http://localhost",
+                "https://YOUR_COGNITO_DOMAIN.auth.us-east-1.amazoncognito.com/oauth2/idpresponse"
+          ]
+     }
+}
+```
+
+## Deployment
+
+1. Deploy the stack:
+```bash
+cdk deploy ReactCdkCompleteStack --output complete.cdk.out
+```
+
+## Post-Deployment Configuration
+
+### Google Console Setup
+- Add Cognito domain (`your-app.auth.us-east-1.amazoncognito.com/oauth2/idpresponse`) to Authorized redirect URIs
+- Optionally add CloudFront URL for direct flow
+
+### Testing
+1. Access your application via CloudFront URL (e.g., `https://d1234abcd.cloudfront.net`)
+2. Use Cognito Hosted UI (optional):
+    ```
+    https://your-app.auth.us-east-1.amazoncognito.com/login?client_id=YOUR_CLIENT_ID&response_type=code&scope=openid+email+profile&redirect_uri=https://your-cloudfront-domain.net
+    ```
+
+### Update Application Image
+After environment variable changes, rebuild and push the Docker image with the updated outputs.
+
+```bash
+docker build -t hammurabi-ui-prod:latest .
+docker tag hammurabi-ui-prod:latest 544547773663.dkr.ecr.us-east-1.amazonaws.com/hammurabi-ui-prod:latest
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 544547773663.dkr.ecr.us-east-1.amazonaws.com
+docker push 544547773663.dkr.ecr.us-east-1.amazonaws.com/hammurabi-ui-prod:latest
+```

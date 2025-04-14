@@ -29,11 +29,12 @@ const TopBar: React.FC = () => {
 
   // Build the logout URL from environment variables.
   const signOutRedirect = () => {
-    const clientId = process.env.REACT_APP_COGNITO_CLIENT_ID || "";
-    const logoutUri = process.env.REACT_APP_LOGOUT_URI || "";
-    const cognitoDomain = process.env.REACT_APP_COGNITO_DOMAIN || "";
+    const clientId = window._env_.REACT_APP_COGNITO_CLIENT_ID || "";
+    const logoutUri = window._env_.REACT_APP_LOGOUT_URI || "";
+    const cognitoDomain = window._env_.REACT_APP_COGNITO_DOMAIN || "";
+    const redirectUri = window._env_.REACT_APP_COGNITO_REDIRECT_URI || "";
     // Adding &federated forces a full sign-out from federated IdPs.
-    const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}&federated`;
+    const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&federated`;
     window.location.href = logoutUrl;
   };
 

@@ -11,17 +11,20 @@ import { initializeCornerstoneJS } from './cornerstoneSetup';
 
 // Read Cognito settings from environment variables.
 const cognitoAuthConfig = {
-  authority: process.env.REACT_APP_COGNITO_AUTHORITY || '',
-  client_id: process.env.REACT_APP_COGNITO_CLIENT_ID || '',
-  redirect_uri: process.env.REACT_APP_COGNITO_REDIRECT_URI || '',
-  response_type: "code",
-  scope: process.env.REACT_APP_COGNITO_SCOPE || "",
+  authority: window._env_.REACT_APP_COGNITO_AUTHORITY || '',
+  client_id: window._env_.REACT_APP_COGNITO_CLIENT_ID || '',
+  redirect_uri: window._env_.REACT_APP_COGNITO_REDIRECT_URI || '',
+  response_type: 'code',
+  scope: window._env_.REACT_APP_COGNITO_SCOPE || '',
 };
 
 initializeCornerstoneJS()
   .then(() => {
     const rootElement = document.getElementById('root') as HTMLElement;
     const root = ReactDOM.createRoot(rootElement);
+    // console.log('Rendering the app...');
+    // display in console the cognitoAuthConfig
+    console.log('Cognito Auth Config:', cognitoAuthConfig);
 
     root.render(
       <React.StrictMode>

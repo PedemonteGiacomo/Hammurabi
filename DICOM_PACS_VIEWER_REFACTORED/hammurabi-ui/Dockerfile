@@ -1,34 +1,41 @@
-# Stage 1: Build the React App
+# --------------------------
+# Stage 1: Build the React app
+# --------------------------
 FROM node:18-alpine AS build
-WORKDIR /app
 
-# Copy package.json files and install dependencies
+WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Copy the rest of the application code, including .env
-COPY . .
+# Copy the rest of your code
+COPY . . 
 
-# Ensure your .env file is copied (if needed)
-COPY .env .env
-
-# Build the app so that the REACT_APP_* variables from .env are injected
+# IMPORTANT: do NOT rely on .env here.
 RUN npm run build
 
-# Stage 2: Serve the App with Nginx
+# --------------------------
+# Stage 2: Serve w/ Nginx, injecting runtime env
+# --------------------------
 FROM nginx:alpine
 
-# Remove the default NGINX configuration
-RUN rm /etc/nginx/conf.d/default.conf
+# Install envsubst (part of the 'gettext' package) so we can do variable substitution
+RUN apk add --no-cache gettext
 
-# Copy your custom NGINX configuration into the container
+# Remove default config & copy our custom
+RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy the build output from the previous stage into NGINX's html folder
+# Copy build output
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Expose port 80 for the container
+# Copy the environment config template & entrypoint
+COPY env-config.js.template /usr/share/nginx/html/env-config.js.template
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
 
-# Start NGINX
+# Use our entrypoint to generate env-config.js at runtime
+ENTRYPOINT ["/entrypoint.sh"]
+# Then run Nginx in the foreground
 CMD ["nginx", "-g", "daemon off;"]
