@@ -99,3 +99,9 @@ cdk deploy ReactCdkCompleteStack --output complete.cdk.out
     - CloudFront URL (e.g., `https://dmhdfjolffdah.cloudfront.net`)
     - Cognito Hosted UI (e.g., `https://auth-app-544547773663.auth.us-east-1.amazoncognito.com`)
 
+3. **Configure MFA AWS SNS SMS Sandbox**
+    - Navigate to [AWS SNS console](https://us-east-1.console.aws.amazon.com/sns/v3/home?region=us-east-1)
+    - Select TEXT MESSAGING from the hamburger menu
+    - Add your test phone number to sandbox destinations
+    - Follow the [SMS sandbox documentation](https://docs.aws.amazon.com/sns/latest/dg/sns-sms-sandbox.html) for setup
+    - Note: Sandbox allows up to 10 test numbers before production approval

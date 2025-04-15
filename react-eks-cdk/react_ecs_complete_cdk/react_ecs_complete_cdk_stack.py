@@ -23,6 +23,7 @@ from aws_cdk import (
     Fn
 )
 from constructs import Construct
+
 class ReactCdkCompleteStack(Stack):
     def __init__(self, scope: Construct, id: str, **kwargs):
         super().__init__(scope, id, **kwargs)
@@ -278,9 +279,28 @@ class ReactCdkCompleteStack(Stack):
         )
         
         # ------------------------------------------------------------
-        #  (H) Create Cognito User Pool without SMS MFA for now
+        #  (H) Create Cognito User Pool with Optional SMS-Based MFA
         # ------------------------------------------------------------
-        # Create the user pool without MFA configuration initially
+        # Define the external ID; here we use the AWS account number.
+        external_id = self.account
+
+        # Create the IAM role for Cognito to send SMS via SNS.
+        sms_role = iam.Role(
+            self, "CognitoSMSRole",
+            assumed_by=iam.ServicePrincipal("cognito-idp.amazonaws.com", 
+                conditions={"StringEquals": {"sts:ExternalId": external_id}}
+            ),
+            inline_policies={
+                "AllowSnsPublish": iam.PolicyDocument(statements=[
+                    iam.PolicyStatement(
+                        actions=["sns:Publish"],
+                        resources=["*"]
+                    )
+                ])
+            }
+        )
+        
+        # Create the Cognito User Pool using the high-level construct.
         user_pool = cognito.UserPool(
             self, "UserPool",
             self_sign_up_enabled=True,
@@ -299,11 +319,26 @@ class ReactCdkCompleteStack(Stack):
                 require_symbols=True
             ),
             account_recovery=cognito.AccountRecovery.EMAIL_ONLY,
-            # No MFA configuration here initially
+            mfa=cognito.Mfa.REQUIRED,
+            mfa_second_factor=cognito.MfaSecondFactor(
+                sms=True,
+                otp=True
+            ),
+            sms_role=sms_role,
+            sms_role_external_id=external_id,
             removal_policy=RemovalPolicy.DESTROY
         )
         
-        # Choose a domain prefix for Cognito Hosted UI
+        # Override the low-level CloudFormation properties to enforce MFA configuration.
+        cfn_user_pool = user_pool.node.default_child
+        cfn_user_pool.add_property_override("MfaConfiguration", "ON")
+        cfn_user_pool.add_property_override("EnabledMfas", ["SMS_MFA", "SOFTWARE_TOKEN_MFA"])
+        cfn_user_pool.add_property_override("SmsConfiguration", {
+            "ExternalId": external_id,
+            "SnsCallerArn": sms_role.role_arn
+        })
+        
+        # Choose a domain prefix for the Cognito Hosted UI.
         domain_prefix = f"auth-app-{self.account}"
         user_pool.add_domain("UserPoolDomain",
             cognito_domain=cognito.CognitoDomainOptions(domain_prefix=domain_prefix)
