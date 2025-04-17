@@ -20,9 +20,9 @@ jobs:
           node-version: '16'
 
       - name: Install frontend dependencies
-        working-directory: DICOM_PACS_VIEWER/frontend/dicom-viewer
+        working-directory: Hammurabi/hammurabi-ui
         run: npm install
 
       - name: Run Jest tests
-        working-directory: DICOM_PACS_VIEWER/frontend/dicom-viewer
+        working-directory: Hammurabi/hammurabi-ui
         run: CI=true npm test -- --watchAll=false
