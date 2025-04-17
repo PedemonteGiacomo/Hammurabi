@@ -10,3 +10,5 @@ other/*
 */old/
 */old
 *secret*
+*_old/*
+*_old

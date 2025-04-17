@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   fill="#000000"
+   width="803.02753"
+   height="733.62848"
+   viewBox="0 0 24.090826 22.008854"
+   id="next"
+   data-name="Flat Color"
+   class="icon flat-color"
+   version="1.1"
+   sodipodi:docname="measure-svgrepo-com.svg"
+   inkscape:export-filename="last-svgrepo-com.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.483125"
+     inkscape:cx="291.84994"
+     inkscape:cy="297.02458"
+     inkscape:window-width="1920"
+     inkscape:window-height="991"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="next" />
+  <g
+     id="g1"
+     transform="matrix(0.99039104,0,0,0.99039104,0.16072102,0.40534756)">
+    <path
+       d="M 22.741402,6.2516451 9.8606903,21.813108 5.4343866,18.146393 18.315096,2.5849304 Z M 6.2900154,18.06689 9.1192638,20.41474 21.230881,5.7878194 18.39512,3.4478191 16.75227,5.4275196 17.625215,6.1519295 17.237139,6.6196374 16.364194,5.8952274 15.588043,6.8304998 16.928624,7.9429712 16.540548,8.410679 15.199967,7.2982076 14.423815,8.23348 15.296746,8.95789 14.90867,9.4255978 14.035725,8.7011879 l -0.776137,0.9352723 1.340581,1.1124718 -0.388061,0.467707 -1.340581,-1.112471 -0.776137,0.935272 0.87293,0.72441 -0.388076,0.467708 -0.87293,-0.72441 -0.776151,0.935273 1.34058,1.112471 -0.388075,0.467708 -1.340581,-1.112472 -0.7761374,0.935273 0.8729304,0.72441 -0.388076,0.467708 -0.8729444,-0.72441 -0.7761515,0.935272 1.340581,1.112471 -0.3880757,0.467708 -1.340581,-1.112471 -0.7761515,0.935272 0.8729305,0.72441 -0.3880757,0.467565 -0.8729305,-0.72441 z M 18.991384,5.1402338 c -0.201064,0.2344986 -0.175136,0.5917614 0.06002,0.8000454 0.234556,0.2011215 0.591705,0.1750502 0.799989,-0.060164 0.201064,-0.2344986 0.175136,-0.5917615 -0.06002,-0.8000454 -0.234556,-0.2011216 -0.591704,-0.1751935 -0.799988,0.060164 z"
+       id="path1-3"
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-opacity:1" />
+    <g
+       id="g4-9"
+       transform="matrix(0.31838855,-0.08628328,0.08628328,0.31838855,-7.1084385,3.2499637)"
+       style="fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:3.43538;stroke-dasharray:none;stroke-opacity:1">
+      <circle
+         cx="31.99"
+         cy="19.360001"
+         r="5.4099998"
+         stroke-linecap="round"
+         id="circle1-1"
+         style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:3.43538;stroke-dasharray:none;stroke-opacity:1" />
+      <line
+         x1="31.99"
+         y1="24.77"
+         x2="16.98"
+         y2="56.889999"
+         stroke-linecap="round"
+         id="line1"
+         style="fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:3.43538;stroke-dasharray:none;stroke-opacity:1" />
+      <line
+         x1="31.99"
+         y1="24.77"
+         x2="47"
+         y2="56.73"
+         stroke-linecap="round"
+         id="line2"
+         style="fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:3.43538;stroke-dasharray:none;stroke-opacity:1" />
+      <line
+         x1="31.99"
+         y1="7.1100001"
+         x2="31.99"
+         y2="13.95"
+         stroke-linecap="round"
+         id="line3"
+         style="fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:3.43538;stroke-dasharray:none;stroke-opacity:1" />
+      <line
+         x1="17.200001"
+         y1="40.07"
+         x2="47.02"
+         y2="40.07"
+         stroke-linecap="round"
+         id="line4"
+         style="fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:3.43538;stroke-dasharray:none;stroke-opacity:1" />
+    </g>
+  </g>
+</svg>
