@@ -61,3 +61,23 @@ jobs:
         cdk deploy ReactCdkCompleteStack \
           -c imageTag=${{ steps.build.outputs.tag }} \
           --require-approval never
+
+    - name: Trigger CodeDeploy deployment
+      run: |
+        APP_NAME="BlueGreenApp"
+        DG_NAME="BlueGreenDG"
+        JSON=$(cat <<EOF
+        {
+          "revisionType":"AppSpecContent",
+          "appSpecContent":{
+            "content":"{}",
+            "sha256":"$(echo -n '{}' | sha256sum | cut -d' ' -f1)"
+          }
+        }
+        EOF
+        )
+        aws deploy create-deployment \
+          --application-name "$APP_NAME" \
+          --deployment-group-name "$DG_NAME" \
+          --revision "$JSON" \
+          --description "GitHub run ${{ github.run_id }} – image ${TAG}"
