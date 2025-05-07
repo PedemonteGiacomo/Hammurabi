@@ -170,7 +170,6 @@ class ReactCdkCompleteStack(Stack):
             self, "BlueGreenDG",
             application=cd_app,
             service=service.service,
-            listener=service.listener,
             blue_green_deployment_config=codedeploy.EcsBlueGreenDeploymentConfig(
                 listener=service.listener,
                 blue_target_group=blue_tg,
