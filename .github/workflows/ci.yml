@@ -13,7 +13,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: CI      # <─ ① aggancia i secret di CI
+    environment: CI
     permissions:
       id-token: write
       contents: read
@@ -21,13 +21,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # —―― install AWS credentials (OIDC)
       - uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.GH_OIDC_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v1
 
+      # —―― build/push immagine
       - name: Build & push Docker
         id: build
         run: |
@@ -36,8 +38,27 @@ jobs:
           docker push $ECR_REPO:$TAG
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
+      # —―― install Node + CDK CLI + dipendenze Python
+      - name: Install CDK toolchain
+        run: |
+          # Node (necessario al CLI)
+          sudo apt-get update -y
+          sudo apt-get install -y python3-pip  # assicura pip
+        # oppure usa l’action:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install CDK CLI
+        run: npm install -g aws-cdk@2
+
+      - name: Install Python deps
+        run: pip3 install -r hammurabi-cdk/requirements.txt
+
+      # —―― cdk deploy
       - name: CDK deploy Blue/Green
         run: |
           cd hammurabi-cdk
-          cdk deploy ReactCdkCompleteStack -c imageTag=${{ steps.build.outputs.tag }} --require-approval never
-
+          cdk deploy ReactCdkCompleteStack \
+            -c imageTag=${{ steps.build.outputs.tag }} \
+            --require-approval never
