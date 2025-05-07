@@ -488,3 +488,7 @@ class ReactCdkCompleteStack(Stack):
         CfnOutput(self, "CloudFrontSecretValue",
                   value="[Stored in AWS Secrets Manager]",
                   description="Value stored in AWS Secrets Manager with name: CloudFrontALBSecret")
+        # print the image tag used
+        CfnOutput(self, "ImageTag",
+                  value=image_tag,
+                  description="Image tag used for the ECR image")
