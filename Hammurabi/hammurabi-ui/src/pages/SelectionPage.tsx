@@ -21,7 +21,7 @@ const SelectionPage: React.FC = () => {
       <TopBar />
       <div className="study-list-wrapper">
         <div className="study-list-header">
-          <h2>Study List</h2>
+          <h2>Studies</h2>
         </div>
         <NestedDicomTable onSelectSeries={handleSelectSeries} />
       </div>
