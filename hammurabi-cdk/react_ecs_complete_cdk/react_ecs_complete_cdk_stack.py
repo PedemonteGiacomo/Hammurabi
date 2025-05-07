@@ -172,6 +172,7 @@ class ReactCdkCompleteStack(Stack):
             service=service.service,
             listener=service.listener,
             blue_green_deployment_config=codedeploy.EcsBlueGreenDeploymentConfig(
+                listener=service.listener,
                 blue_target_group=blue_tg,
                 green_target_group=green_tg
             ),
