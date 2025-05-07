@@ -13,6 +13,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: CI      # <─ ① aggancia i secret di CI
     permissions:
       id-token: write
       contents: read
@@ -23,7 +24,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.GH_OIDC_ROLE_ARN }}
-          aws-region: us-east-1
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v1
 
