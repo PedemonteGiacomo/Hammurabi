@@ -147,9 +147,9 @@ class ReactCdkCompleteStack(Stack):
         # (C.1)  BLUE / GREEN  (CodeDeploy)
         # ---------------------------------------------------------------------
         # Abilita controller CodeDeploy sul servizio ECS
-        service.service.deployment_controller = ecs.DeploymentController(
-            type=ecs.DeploymentControllerType.CODE_DEPLOY
-        )
+        # service.service.deployment_controller = ecs.DeploymentController(
+        #     type=ecs.DeploymentControllerType.CODE_DEPLOY
+        # )
 
         # target‑group blue creato dal pattern
         blue_tg = service.target_group
@@ -170,8 +170,8 @@ class ReactCdkCompleteStack(Stack):
             self, "BlueGreenDG",
             application=cd_app,
             service=service.service,
+            listener=service.listener,
             blue_green_deployment_config=codedeploy.EcsBlueGreenDeploymentConfig(
-                listener=service.listener,
                 blue_target_group=blue_tg,
                 green_target_group=green_tg
             ),
