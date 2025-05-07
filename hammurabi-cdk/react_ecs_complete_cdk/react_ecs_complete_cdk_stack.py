@@ -79,104 +79,72 @@ class ReactCdkCompleteStack(Stack):
         )
         secret_header_value = get_secret_cr.get_response_field("SecretString")  # noqa: F841
 
-        # ---------------------------------------------------------------------
-        # (C)  VPC + ECS + ECR
-        # ---------------------------------------------------------------------
-        vpc = ec2.Vpc(self, "ReactEcsVpc", max_azs=2)
+        # ------------------------------------------------------------------ #
+        # (C) VPC, Cluster, ECR
+        # ------------------------------------------------------------------ #
+        vpc     = ec2.Vpc(self, "ReactEcsVpc", max_azs=2)
         cluster = ecs.Cluster(self, "ReactEcsCluster", vpc=vpc)
+        repo    = ecr.Repository.from_repository_name(self, "UiRepo", "hammurabi-ui-prod")
 
-        repository = ecr.Repository.from_repository_name(
-            self, "HammurabiRepo", "hammurabi-ui-prod"
-        )
-
-        # ALB security‑group
-        alb_sg = ec2.SecurityGroup(
-            self, "ALBSecurityGroup",
-            vpc=vpc,
-            description="Security group for ALB",
-            allow_all_outbound=True
-        )
-        alb_sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "HTTP")
+        alb_sg = ec2.SecurityGroup(self, "AlbSG", vpc=vpc, allow_all_outbound=True)
+        alb_sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80),  "HTTP")
         alb_sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(443), "HTTPS")
 
-        # ---------- servizio Fargate con ALB pattern ----------
+        # ---------- Fargate service with CodeDeploy controller -------------
         service = ecs_patterns.ApplicationLoadBalancedFargateService(
             self, "ReactFargateService",
-            cluster=cluster,
-            cpu=256,
-            desired_count=2,
-            memory_limit_mib=512,
-            min_healthy_percent=100,
-            task_image_options=ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
-                image=ecs.ContainerImage.from_ecr_repository(repository, tag=image_tag),
-                container_port=80,
-                environment={
-                    # placeholder – sarà sovrascritto più avanti
-                    "REACT_APP_COGNITO_USER_POOL_ID": "PLACEHOLDER",
-                    "REACT_APP_COGNITO_CLIENT_ID": "PLACEHOLDER",
-                    "REACT_APP_COGNITO_REGION": self.region,
-                    "REACT_APP_COGNITO_REDIRECT_URI": "PLACEHOLDER",
-                    "REACT_APP_COGNITO_SCOPE": "phone openid email",
-                    "REACT_APP_LOGOUT_URI": "PLACEHOLDER",
-                    "REACT_APP_COGNITO_DOMAIN": "PLACEHOLDER",
-                    "BUILD_TIMESTAMP": str(int(time.time())),
-                    "BUILD_VERSION": image_tag
+            cluster             = cluster,
+            cpu                 = 256,
+            desired_count       = 2,
+            memory_limit_mib    = 512,
+            min_healthy_percent = 100,
+            public_load_balancer = True,
+
+            deployment_controller = ecs.DeploymentController(
+                type = ecs.DeploymentControllerType.CODE_DEPLOY
+            ),
+
+            task_image_options = ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
+                image          = ecs.ContainerImage.from_ecr_repository(repo, tag=image_tag),
+                container_port = 80,
+                environment    = {
+                    "BUILD_VERSION": image_tag,
+                    # (gli altri PLACEHOLDER verranno sovrascritti più avanti)
                 }
             ),
-            public_load_balancer=True
         )
         service.load_balancer.add_security_group(alb_sg)
 
-        service.task_definition.add_to_execution_role_policy(
-            iam.PolicyStatement(
-                actions=[
-                    "ecr:GetAuthorizationToken",
-                    "ecr:BatchCheckLayerAvailability",
-                    "ecr:GetDownloadUrlForLayer",
-                    "ecr:BatchGetImage"
-                ],
-                resources=["*"]
-            )
-        )
-
-        # ---------------------------------------------------------------------
-        # (C.1)  BLUE / GREEN  (CodeDeploy)
-        # ---------------------------------------------------------------------
-        # Abilita controller CodeDeploy sul servizio ECS
-        service.service.deployment_controller = ecs.DeploymentController(
-            type=ecs.DeploymentControllerType.CODE_DEPLOY
-        )
-
-        # target‑group blue creato dal pattern
-        blue_tg = service.target_group
-
-        # target‑group green identico
+        # ------------------------------------------------------------------ #
+        # (C.1) Blue/Green – target groups & deployment group
+        # ------------------------------------------------------------------ #
+        blue_tg  = service.target_group
         green_tg = elbv2.ApplicationTargetGroup(
             self, "GreenTG",
-            vpc=vpc,
-            port=80,
-            protocol=elbv2.ApplicationProtocol.HTTP,
-            target_type=elbv2.TargetType.IP,
-            health_check=elbv2.HealthCheck(path="/")
+            vpc          = vpc,
+            port         = 80,
+            protocol     = elbv2.ApplicationProtocol.HTTP,
+            target_type  = elbv2.TargetType.IP,
+            health_check = elbv2.HealthCheck(path="/")
         )
 
-        # App e Deployment‑Group CodeDeploy
         cd_app = codedeploy.EcsApplication(self, "BlueGreenApp")
         codedeploy.EcsDeploymentGroup(
             self, "BlueGreenDG",
-            application=cd_app,
-            service=service.service,
-            blue_green_deployment_config=codedeploy.EcsBlueGreenDeploymentConfig(
-                listener=service.listener,
-                blue_target_group=blue_tg,
-                green_target_group=green_tg
+            application                 = cd_app,
+            service                     = service.service,
+            blue_green_deployment_config = codedeploy.EcsBlueGreenDeploymentConfig(
+                listener          = service.listener,
+                blue_target_group = blue_tg,
+                green_target_group= green_tg,
             ),
-            deployment_config=codedeploy.EcsDeploymentConfig.LINEAR_10_PERCENT_EVERY_1_MINUTES,
-            auto_rollback=codedeploy.AutoRollbackConfig(
-                failed_deployment=True,
-                stopped_deployment=True
+            deployment_config = codedeploy.EcsDeploymentConfig.LINEAR_10_PERCENT_EVERY_1MINUTE,
+            auto_rollback     = codedeploy.AutoRollbackConfig(
+                failed_deployment  = True,
+                stopped_deployment = True
             )
         )
+
 
         # ---------------------------------------------------------------------
         # (D)  WAF per ALB
