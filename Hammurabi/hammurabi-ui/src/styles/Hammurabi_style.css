@@ -370,3 +370,10 @@ body {
   font-size: 0.9rem;
   margin-top: 0.5rem;
 }
+
+/* Versioning and Build Badge */
+.build-badge{
+  font-size:.75rem;
+  color:#bbb;
+  margin-right:1rem;
+}

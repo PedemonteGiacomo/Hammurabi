@@ -1,4 +1,4 @@
-name: CI
+name: CI‑CD
 
 on:
   push:
@@ -6,23 +6,37 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  AWS_REGION: us-east-1
+  ECR_REPO: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hammurabi-ui-prod
+
 jobs:
-  test:
+  deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - uses: aws-actions/configure-aws-credentials@v2
         with:
-          node-version: '16'
+          role-to-assume: ${{ secrets.GH_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install frontend dependencies
-        working-directory: Hammurabi/hammurabi-ui
-        run: npm install && npm install react-router-dom@7.5.0
+      - uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Run Jest tests
-        working-directory: Hammurabi/hammurabi-ui
-        run: CI=true npm test -- --watchAll=false
+      - name: Build & push Docker
+        id: build
+        run: |
+          TAG=$(git rev-parse --short HEAD)
+          docker build -t $ECR_REPO:$TAG --build-arg VERSION_INFO=$TAG Hammurabi/hammurabi-ui
+          docker push $ECR_REPO:$TAG
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: CDK deploy Blue/Green
+        run: |
+          cd hammurabi-cdk
+          cdk deploy ReactCdkCompleteStack -c imageTag=${{ steps.build.outputs.tag }} --require-approval never
+

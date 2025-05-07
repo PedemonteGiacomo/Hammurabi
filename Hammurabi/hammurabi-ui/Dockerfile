@@ -1,41 +1,58 @@
-# --------------------------
-# Stage 1: Build the React app
-# --------------------------
+# ------------------------------------------------------------------
+# Stage 1 – build del front‑end React
+# ------------------------------------------------------------------
+    
 FROM node:18-alpine AS build
 
+    # ► TAG di versione passato dalla pipeline; default = dev
+ARG VERSION_INFO=dev
+    
 WORKDIR /app
+    
+    # Solo i package* per sfruttare la cache layer
 COPY package*.json ./
 RUN npm ci
-
-# Copy the rest of your code
-COPY . . 
-
-# IMPORTANT: do NOT rely on .env here.
+    
+    # Copia il resto del codice
+COPY . .
+    
+    # Espone la versione al processo di build CRA
+    #   👉 sarà disponibile in React come process.env.REACT_APP_VERSION
+ENV REACT_APP_VERSION=$VERSION_INFO
+    
+    # IMPORTANT: non usare .env qui – le variabili runtime saranno iniettate
 RUN npm run build
-
-# --------------------------
-# Stage 2: Serve w/ Nginx, injecting runtime env
-# --------------------------
+    
+    
+    # ------------------------------------------------------------------
+    # Stage 2 – Nginx + entrypoint che inietta la config runtime
+    # ------------------------------------------------------------------
 FROM nginx:alpine
-
-# Install envsubst (part of the 'gettext' package) so we can do variable substitution
+    
+    # Rendi disponibile lo stesso ARG anche in questo stage
+ARG VERSION_INFO=dev
+    
+    # Serve per envsubst
 RUN apk add --no-cache gettext
-
-# Remove default config & copy our custom
+    
+    # Config Nginx custom
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy build output
+    
+    # Output della build
 COPY --from=build /app/build /usr/share/nginx/html
-
-# Copy the environment config template & entrypoint
+    
+    # Template JS + entrypoint
 COPY env-config.js.template /usr/share/nginx/html/env-config.js.template
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
+    
+    # Etichetta utile (es. per ECR & traceability)
+LABEL version=$VERSION_INFO
+    
 EXPOSE 80
-
-# Use our entrypoint to generate env-config.js at runtime
+    
+    # Genera env‑config.js e poi resta in foreground
 ENTRYPOINT ["/entrypoint.sh"]
-# Then run Nginx in the foreground
 CMD ["nginx", "-g", "daemon off;"]
+    

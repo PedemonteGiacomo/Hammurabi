@@ -15,6 +15,7 @@ from aws_cdk import (
     aws_secretsmanager as secretsmanager,
     aws_wafv2 as wafv2,
     aws_elasticloadbalancingv2 as elbv2,
+    aws_codedeploy as codedeploy,
     custom_resources as cr,
     SecretValue,
     CfnOutput,
@@ -24,32 +25,36 @@ from aws_cdk import (
 )
 from constructs import Construct
 
+
 class ReactCdkCompleteStack(Stack):
     def __init__(self, scope: Construct, id: str, **kwargs):
         super().__init__(scope, id, **kwargs)
-        
-        # ------------------------------------------------------------
-        #  (A) Read Google OAuth config from a local JSON file
-        # ------------------------------------------------------------
+
+        # ---------------------------------------------------------------------
+        # (0)  TAG immagine da context (default “latest” se non passato)
+        # ---------------------------------------------------------------------
+        image_tag: str = self.node.try_get_context("imageTag") or "latest"
+
+        # ---------------------------------------------------------------------
+        # (A) Google OAuth – legge segreti locali
+        # ---------------------------------------------------------------------
         google_json_path = os.path.join(os.path.dirname(__file__), "google_secrets.json")
         with open(google_json_path, "r") as f:
             google_config = json.load(f)
         google_client_id = google_config["web"]["client_id"]
         google_client_secret_str = google_config["web"]["client_secret"]
-        
-        # ------------------------------------------------------------
-        #  (B) Create Secret in AWS Secrets Manager for the Google client secret
-        # ------------------------------------------------------------
+
+        # Secret in Secrets Manager per il client‑secret Google
         google_oauth_secret = secretsmanager.Secret(
             self, "GoogleOAuthClientSecret",
             secret_name="GoogleOAuthClientSecret",
             removal_policy=RemovalPolicy.DESTROY,
             secret_string_value=SecretValue.unsafe_plain_text(google_client_secret_str)
         )
-        
-        # ------------------------------------------------------------
-        #  (C) Create CloudFront-ALB Secret header in AWS Secrets Manager
-        # ------------------------------------------------------------
+
+        # ---------------------------------------------------------------------
+        # (B)  Secret header CloudFront → ALB
+        # ---------------------------------------------------------------------
         cf_alb_secret_value = f"CF-Secret-{uuid.uuid4()}"
         cf_header_secret = secretsmanager.Secret(
             self, "CloudFrontALBSecret",
@@ -72,24 +77,29 @@ class ReactCdkCompleteStack(Stack):
                 )
             ])
         )
-        secret_header_value = get_secret_cr.get_response_field("SecretString")
-        
-        # ------------------------------------------------------------
-        #  (D) Set up VPC, ECS Fargate service with ALB
-        # ------------------------------------------------------------
+        secret_header_value = get_secret_cr.get_response_field("SecretString")  # noqa: F841
+
+        # ---------------------------------------------------------------------
+        # (C)  VPC + ECS + ECR
+        # ---------------------------------------------------------------------
         vpc = ec2.Vpc(self, "ReactEcsVpc", max_azs=2)
         cluster = ecs.Cluster(self, "ReactEcsCluster", vpc=vpc)
+
         repository = ecr.Repository.from_repository_name(
             self, "HammurabiRepo", "hammurabi-ui-prod"
         )
+
+        # ALB security‑group
         alb_sg = ec2.SecurityGroup(
             self, "ALBSecurityGroup",
             vpc=vpc,
-            description="Security group for ALB, allowing traffic only from authorized sources",
+            description="Security group for ALB",
             allow_all_outbound=True
         )
-        alb_sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP from anywhere")
-        alb_sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(443), "Allow HTTPS from anywhere")
+        alb_sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "HTTP")
+        alb_sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(443), "HTTPS")
+
+        # ---------- servizio Fargate con ALB pattern ----------
         service = ecs_patterns.ApplicationLoadBalancedFargateService(
             self, "ReactFargateService",
             cluster=cluster,
@@ -98,9 +108,10 @@ class ReactCdkCompleteStack(Stack):
             memory_limit_mib=512,
             min_healthy_percent=100,
             task_image_options=ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
-                image=ecs.ContainerImage.from_ecr_repository(repository, tag="latest"),
+                image=ecs.ContainerImage.from_ecr_repository(repository, tag=image_tag),
                 container_port=80,
                 environment={
+                    # placeholder – sarà sovrascritto più avanti
                     "REACT_APP_COGNITO_USER_POOL_ID": "PLACEHOLDER",
                     "REACT_APP_COGNITO_CLIENT_ID": "PLACEHOLDER",
                     "REACT_APP_COGNITO_REGION": self.region,
@@ -108,12 +119,14 @@ class ReactCdkCompleteStack(Stack):
                     "REACT_APP_COGNITO_SCOPE": "phone openid email",
                     "REACT_APP_LOGOUT_URI": "PLACEHOLDER",
                     "REACT_APP_COGNITO_DOMAIN": "PLACEHOLDER",
-                    "BUILD_TIMESTAMP": str(int(time.time()))
+                    "BUILD_TIMESTAMP": str(int(time.time())),
+                    "BUILD_VERSION": image_tag
                 }
             ),
             public_load_balancer=True
         )
         service.load_balancer.add_security_group(alb_sg)
+
         service.task_definition.add_to_execution_role_policy(
             iam.PolicyStatement(
                 actions=[
@@ -125,10 +138,49 @@ class ReactCdkCompleteStack(Stack):
                 resources=["*"]
             )
         )
-        
-        # ------------------------------------------------------------
-        #  (E) Setup WAF for ALB
-        # ------------------------------------------------------------
+
+        # ---------------------------------------------------------------------
+        # (C.1)  BLUE / GREEN  (CodeDeploy)
+        # ---------------------------------------------------------------------
+        # Abilita controller CodeDeploy sul servizio ECS
+        service.service.deployment_controller = ecs.DeploymentController(
+            type=ecs.DeploymentControllerType.CODE_DEPLOY
+        )
+
+        # target‑group blue creato dal pattern
+        blue_tg = service.target_group
+
+        # target‑group green identico
+        green_tg = elbv2.ApplicationTargetGroup(
+            self, "GreenTG",
+            vpc=vpc,
+            port=80,
+            protocol=elbv2.ApplicationProtocol.HTTP,
+            target_type=elbv2.TargetType.IP,
+            health_check=elbv2.HealthCheck(path="/")
+        )
+
+        # App e Deployment‑Group CodeDeploy
+        cd_app = codedeploy.EcsApplication(self, "BlueGreenApp")
+        codedeploy.EcsDeploymentGroup(
+            self, "BlueGreenDG",
+            application=cd_app,
+            service=service.service,
+            blue_green_deployment_config=codedeploy.EcsBlueGreenDeploymentConfig(
+                listener=service.listener,
+                blue_target_group=blue_tg,
+                green_target_group=green_tg
+            ),
+            deployment_config=codedeploy.EcsDeploymentConfig.LINEAR_10PERCENT_EVERY_1MINUTE,
+            auto_rollback=codedeploy.AutoRollbackConfig(
+                failed_deployment=True,
+                stopped_deployment=True
+            )
+        )
+
+        # ---------------------------------------------------------------------
+        # (D)  WAF per ALB
+        # ---------------------------------------------------------------------
         alb_waf = wafv2.CfnWebACL(
             self, "ALBWebACL",
             scope="REGIONAL",
@@ -148,10 +200,16 @@ class ReactCdkCompleteStack(Stack):
                         not_statement=wafv2.CfnWebACL.NotStatementProperty(
                             statement=wafv2.CfnWebACL.StatementProperty(
                                 byte_match_statement=wafv2.CfnWebACL.ByteMatchStatementProperty(
-                                    field_to_match=wafv2.CfnWebACL.FieldToMatchProperty(single_header={"Name": "X-CloudFront-Auth"}),
+                                    field_to_match=wafv2.CfnWebACL.FieldToMatchProperty(
+                                        single_header={"Name": "X-CloudFront-Auth"}
+                                    ),
                                     positional_constraint="EXACTLY",
                                     search_string=cf_alb_secret_value,
-                                    text_transformations=[wafv2.CfnWebACL.TextTransformationProperty(priority=0, type="NONE")]
+                                    text_transformations=[
+                                        wafv2.CfnWebACL.TextTransformationProperty(
+                                            priority=0, type="NONE"
+                                        )
+                                    ],
                                 )
                             )
                         )
@@ -168,7 +226,8 @@ class ReactCdkCompleteStack(Stack):
                     override_action=wafv2.CfnWebACL.OverrideActionProperty(none={}),
                     statement=wafv2.CfnWebACL.StatementProperty(
                         managed_rule_group_statement=wafv2.CfnWebACL.ManagedRuleGroupStatementProperty(
-                            vendor_name="AWS", name="AWSManagedRulesCommonRuleSet"
+                            vendor_name="AWS",
+                            name="AWSManagedRulesCommonRuleSet"
                         )
                     ),
                     visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
@@ -183,7 +242,8 @@ class ReactCdkCompleteStack(Stack):
                     action=wafv2.CfnWebACL.RuleActionProperty(block={}),
                     statement=wafv2.CfnWebACL.StatementProperty(
                         rate_based_statement=wafv2.CfnWebACL.RateBasedStatementProperty(
-                            limit=1000, aggregate_key_type="IP"
+                            limit=1000,
+                            aggregate_key_type="IP"
                         )
                     ),
                     visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
@@ -199,10 +259,10 @@ class ReactCdkCompleteStack(Stack):
             resource_arn=service.load_balancer.load_balancer_arn,
             web_acl_arn=alb_waf.attr_arn
         )
-        
-        # ------------------------------------------------------------
-        #  (G) Create CloudFront distribution with WAF
-        # ------------------------------------------------------------
+
+        # ---------------------------------------------------------------------
+        # (E)  CloudFront + WAF
+        # ---------------------------------------------------------------------
         cf_waf = wafv2.CfnWebACL(
             self, "CloudFrontWAF",
             scope="CLOUDFRONT",
@@ -220,7 +280,8 @@ class ReactCdkCompleteStack(Stack):
                     override_action=wafv2.CfnWebACL.OverrideActionProperty(none={}),
                     statement=wafv2.CfnWebACL.StatementProperty(
                         managed_rule_group_statement=wafv2.CfnWebACL.ManagedRuleGroupStatementProperty(
-                            vendor_name="AWS", name="AWSManagedRulesCommonRuleSet"
+                            vendor_name="AWS",
+                            name="AWSManagedRulesCommonRuleSet"
                         )
                     ),
                     visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
@@ -235,7 +296,8 @@ class ReactCdkCompleteStack(Stack):
                     override_action=wafv2.CfnWebACL.OverrideActionProperty(none={}),
                     statement=wafv2.CfnWebACL.StatementProperty(
                         managed_rule_group_statement=wafv2.CfnWebACL.ManagedRuleGroupStatementProperty(
-                            vendor_name="AWS", name="AWSManagedRulesAmazonIpReputationList"
+                            vendor_name="AWS",
+                            name="AWSManagedRulesAmazonIpReputationList"
                         )
                     ),
                     visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
@@ -250,7 +312,8 @@ class ReactCdkCompleteStack(Stack):
                     action=wafv2.CfnWebACL.RuleActionProperty(block={}),
                     statement=wafv2.CfnWebACL.StatementProperty(
                         rate_based_statement=wafv2.CfnWebACL.RateBasedStatementProperty(
-                            limit=2000, aggregate_key_type="IP"
+                            limit=2000,
+                            aggregate_key_type="IP"
                         )
                     ),
                     visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
@@ -261,7 +324,7 @@ class ReactCdkCompleteStack(Stack):
                 )
             ]
         )
-        
+
         alb_origin = origins.LoadBalancerV2Origin(
             service.load_balancer,
             protocol_policy=cloudfront.OriginProtocolPolicy.HTTP_ONLY,
@@ -277,30 +340,25 @@ class ReactCdkCompleteStack(Stack):
             ),
             web_acl_id=cf_waf.attr_arn
         )
-        
-        # ------------------------------------------------------------
-        #  (H) Create Cognito User Pool with Optional SMS-Based MFA
-        # ------------------------------------------------------------
-        # Define the external ID; here we use the AWS account number.
+
+        # ---------------------------------------------------------------------
+        # (F)  Cognito + Google IdP
+        # ---------------------------------------------------------------------
         external_id = self.account
 
-        # Create the IAM role for Cognito to send SMS via SNS.
         sms_role = iam.Role(
             self, "CognitoSMSRole",
-            assumed_by=iam.ServicePrincipal("cognito-idp.amazonaws.com", 
+            assumed_by=iam.ServicePrincipal(
+                "cognito-idp.amazonaws.com",
                 conditions={"StringEquals": {"sts:ExternalId": external_id}}
             ),
             inline_policies={
                 "AllowSnsPublish": iam.PolicyDocument(statements=[
-                    iam.PolicyStatement(
-                        actions=["sns:Publish"],
-                        resources=["*"]
-                    )
+                    iam.PolicyStatement(actions=["sns:Publish"], resources=["*"])
                 ])
             }
         )
-        
-        # Create the Cognito User Pool using the high-level construct.
+
         user_pool = cognito.UserPool(
             self, "UserPool",
             self_sign_up_enabled=True,
@@ -320,16 +378,13 @@ class ReactCdkCompleteStack(Stack):
             ),
             account_recovery=cognito.AccountRecovery.EMAIL_ONLY,
             mfa=cognito.Mfa.REQUIRED,
-            mfa_second_factor=cognito.MfaSecondFactor(
-                sms=True,
-                otp=True
-            ),
+            mfa_second_factor=cognito.MfaSecondFactor(sms=True, otp=True),
             sms_role=sms_role,
             sms_role_external_id=external_id,
             removal_policy=RemovalPolicy.DESTROY
         )
-        
-        # Override the low-level CloudFormation properties to enforce MFA configuration.
+
+        # forza MFA a livello CFN
         cfn_user_pool = user_pool.node.default_child
         cfn_user_pool.add_property_override("MfaConfiguration", "ON")
         cfn_user_pool.add_property_override("EnabledMfas", ["SMS_MFA", "SOFTWARE_TOKEN_MFA"])
@@ -337,17 +392,14 @@ class ReactCdkCompleteStack(Stack):
             "ExternalId": external_id,
             "SnsCallerArn": sms_role.role_arn
         })
-        
-        # Choose a domain prefix for the Cognito Hosted UI.
+
         domain_prefix = f"auth-app-{self.account}"
-        user_pool.add_domain("UserPoolDomain",
+        user_pool.add_domain(
+            "UserPoolDomain",
             cognito_domain=cognito.CognitoDomainOptions(domain_prefix=domain_prefix)
         )
         cognito_domain_url = f"https://{domain_prefix}.auth.{self.region}.amazoncognito.com"
-        
-        # ------------------------------------------------------------
-        #  (I) Google Identity Provider in Cognito
-        # ------------------------------------------------------------
+
         google_idp = cognito.UserPoolIdentityProviderGoogle(
             self, "GoogleIdP",
             user_pool=user_pool,
@@ -360,13 +412,10 @@ class ReactCdkCompleteStack(Stack):
                 family_name=cognito.ProviderAttribute.GOOGLE_FAMILY_NAME
             )
         )
-        
-        # ------------------------------------------------------------
-        #  (J) Single unified User Pool Client for both login methods
-        # ------------------------------------------------------------
+
         redirect_uri = f"https://{distribution.domain_name}"
         logout_uri = f"https://{distribution.domain_name}/aws-signout"
-        
+
         user_pool_client = user_pool.add_client(
             "UnifiedUserPoolClient",
             supported_identity_providers=[
@@ -391,10 +440,10 @@ class ReactCdkCompleteStack(Stack):
             )
         )
         user_pool_client.node.add_dependency(google_idp)
-        
-        # ------------------------------------------------------------
-        #  (K) Update ECS container environment with Cognito details
-        # ------------------------------------------------------------
+
+        # ---------------------------------------------------------------------
+        # (G)  inject env nel container ECS
+        # ---------------------------------------------------------------------
         container_def = service.task_definition.default_container
         if container_def:
             container_def.add_environment("REACT_APP_COGNITO_USER_POOL_ID", user_pool.user_pool_id)
@@ -404,22 +453,34 @@ class ReactCdkCompleteStack(Stack):
             container_def.add_environment("REACT_APP_COGNITO_SCOPE", "profile openid email")
             container_def.add_environment("REACT_APP_LOGOUT_URI", logout_uri)
             container_def.add_environment("REACT_APP_COGNITO_DOMAIN", cognito_domain_url)
-            container_def.add_environment("REACT_APP_COGNITO_AUTHORITY", 
+            container_def.add_environment(
+                "REACT_APP_COGNITO_AUTHORITY",
                 f"https://cognito-idp.{self.region}.amazonaws.com/{user_pool.user_pool_id}"
             )
-        
-        # ------------------------------------------------------------
-        #  (L) Outputs
-        # ------------------------------------------------------------
-        CfnOutput(self, "CloudFrontURL", value=f"https://{distribution.domain_name}",
-                 description="CloudFront distribution domain")
-        CfnOutput(self, "CognitoHostedUIDomain", value=cognito_domain_url,
-                 description="Cognito Hosted UI domain")
+            container_def.add_environment("BUILD_VERSION", image_tag)
+
+        # ---------------------------------------------------------------------
+        # (H)  Outputs
+        # ---------------------------------------------------------------------
+        CfnOutput(self, "CloudFrontURL",
+                  value=f"https://{distribution.domain_name}",
+                  description="CloudFront distribution domain")
+
+        CfnOutput(self, "CognitoHostedUIDomain",
+                  value=cognito_domain_url,
+                  description="Cognito Hosted UI domain")
+
         CfnOutput(self, "UserPoolID", value=user_pool.user_pool_id)
         CfnOutput(self, "UserPoolClientID", value=user_pool_client.user_pool_client_id)
         CfnOutput(self, "GoogleClientID", value=google_client_id)
-        CfnOutput(self, "LoadBalancerDNS", value=service.load_balancer.load_balancer_dns_name)
-        CfnOutput(self, "CloudFrontSecretHeader", value="X-CloudFront-Auth",
-                 description="Secret header name used for CloudFront authentication")
-        CfnOutput(self, "CloudFrontSecretValue", value="[Stored in AWS Secrets Manager]",
-                 description="Value stored in AWS Secrets Manager with name: CloudFrontALBSecret")
+
+        CfnOutput(self, "LoadBalancerDNS",
+                  value=service.load_balancer.load_balancer_dns_name)
+
+        CfnOutput(self, "CloudFrontSecretHeader",
+                  value="X-CloudFront-Auth",
+                  description="Secret header name used for CloudFront authentication")
+
+        CfnOutput(self, "CloudFrontSecretValue",
+                  value="[Stored in AWS Secrets Manager]",
+                  description="Value stored in AWS Secrets Manager with name: CloudFrontALBSecret")

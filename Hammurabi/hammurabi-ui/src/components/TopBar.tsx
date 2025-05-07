@@ -3,20 +3,28 @@ import { Link } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
 /**
- * TopBar Component:
- * - Displays the logo (linked to home).
- * - Shows a user icon that, when clicked, displays a pink dropdown containing the user's email and name,
- *   plus a "Log out" button.
- * - On "Log out" the user is redirected to AWS Cognito’s full logout endpoint (using environment variables)
- *   with the federated parameter so that the Hosted UI clears any IdP sessions.
+ * TopBar Component
+ * -------------------------------------------------
+ * • Logo (link a “/”)
+ * • Badge con la versione di build (ricavata da window._env_.BUILD_VERSION)
+ * • Icona utente → dropdown con e‑mail/nome + Logout (Cognito)
  */
 const TopBar: React.FC = () => {
   const auth = useAuth();
+
+  /* -------------------------  UI state  ------------------------ */
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
   const toggleDropdown = () => setDropdownVisible(prev => !prev);
 
+  /* --------------------  versione di build  -------------------- */
+  // Se l’app gira in dev mode CRA inietta anche REACT_APP_VERSION
+  const buildVersion =
+    (window as any)._env_?.BUILD_VERSION ??
+    process.env.REACT_APP_VERSION ??
+    'dev';
+
+  /* -------------  chiudi dropdown se clic fuori  --------------- */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -27,32 +35,41 @@ const TopBar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Build the logout URL from environment variables.
+  /* ----------------------  Logout (Cognito)  ------------------- */
   const signOutRedirect = () => {
-    const clientId = window._env_.REACT_APP_COGNITO_CLIENT_ID || "";
-    const logoutUri = window._env_.REACT_APP_LOGOUT_URI || "";
-    const cognitoDomain = window._env_.REACT_APP_COGNITO_DOMAIN || "";
-    const redirectUri = window._env_.REACT_APP_COGNITO_REDIRECT_URI || "";
-    // Adding &federated forces a full sign-out from federated IdPs.
-    const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&federated`;
+    const clientId     = window._env_.REACT_APP_COGNITO_CLIENT_ID   || '';
+    const logoutUri    = window._env_.REACT_APP_LOGOUT_URI          || '';
+    const cognitoDomain= window._env_.REACT_APP_COGNITO_DOMAIN      || '';
+    const redirectUri  = window._env_.REACT_APP_COGNITO_REDIRECT_URI|| '';
+
+    const logoutUrl =
+      `${cognitoDomain}/logout?client_id=${clientId}` +
+      `&logout_uri=${encodeURIComponent(logoutUri)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=code&federated`;
     window.location.href = logoutUrl;
   };
 
-  // Instead of calling auth.removeUser() locally (which might not clear all cookies),
-  // we simply redirect to Cognito's logout endpoint.
-  const handleLogout = () => {
-    signOutRedirect();
-  };
+  const handleLogout = () => signOutRedirect();
 
+  /* ---------------------------  JSX  --------------------------- */
   return (
     <nav className="topbar-container">
       <div className="topbar-content">
-        {/* Logo linking back to home */}
+        {/* Logo */}
         <Link to="/">
-          <img className="topbar-logo" src="/assets/esaote_vector.svg" alt="Esaote Logo" />
+          <img
+            className="topbar-logo"
+            src="/assets/esaote_vector.svg"
+            alt="Esaote Logo"
+          />
         </Link>
+
+        {/* spacer + badge versione */}
         <div className="topbar-spacer" />
-        {/* User icon with dropdown */}
+        <span className="build-badge">v{buildVersion}</span>
+
+        {/* User icon + dropdown */}
         <div style={{ position: 'relative' }}>
           <img
             className="topbar-user-icon"
@@ -61,6 +78,7 @@ const TopBar: React.FC = () => {
             onClick={toggleDropdown}
             style={{ cursor: 'pointer' }}
           />
+
           {dropdownVisible && (
             <div ref={dropdownRef} className="topbar-dropdown">
               <div style={{ marginBottom: '0.5rem', color: 'black' }}>
