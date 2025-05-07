@@ -171,7 +171,7 @@ class ReactCdkCompleteStack(Stack):
                 blue_target_group=blue_tg,
                 green_target_group=green_tg
             ),
-            deployment_config=codedeploy.EcsDeploymentConfig.LINEAR_10PERCENT_EVERY_1MINUTE,
+            deployment_config=codedeploy.EcsDeploymentConfig.LINEAR_10_PERCENT_EVERY_1_MINUTES,
             auto_rollback=codedeploy.AutoRollbackConfig(
                 failed_deployment=True,
                 stopped_deployment=True
