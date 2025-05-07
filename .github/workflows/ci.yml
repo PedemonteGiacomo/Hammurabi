@@ -23,7 +23,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.GH_OIDC_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-east-1
 
       - uses: aws-actions/amazon-ecr-login@v1
 
