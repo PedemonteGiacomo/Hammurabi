@@ -193,33 +193,43 @@ jobs:
         echo "Registered new task definition: $REVISION_ARN"
         echo "revision=$REVISION_ARN" >> "$GITHUB_OUTPUT"
     
-    #---------------------------------------------------------------
-    # 9) Avvia il deployment CodeDeploy (quoting fix)
-    #---------------------------------------------------------------
+      #---------------------------------------------------------------
+      # 9) Avvia il deployment CodeDeploy con file JSON
+      #---------------------------------------------------------------
     - name: Create CodeDeploy deployment
       env:
         AWS_REGION:   ${{ env.AWS_REGION }}
-        APP_NAME:     BlueGreenApp
-        DG_NAME:      BlueGreenDG
+        APP_NAME:     BlueGreenApp          # come nel CDK
+        DG_NAME:      BlueGreenDG           # come nel CDK
         CLUSTER_NAME: ${{ steps.resolve.outputs.cluster_name }}
         SERVICE_NAME: ${{ steps.resolve.outputs.service_name }}
         REVISION_ARN: ${{ steps.register.outputs.revision }}
       run: |
         set -euo pipefail
 
-        # Costruisci l'ecsRevision in una sola riga
-        ECS_REV=$(jq -cn \
-          --arg td  "$REVISION_ARN" \
-          --arg svc "$SERVICE_NAME" \
-          --arg clu "$CLUSTER_NAME" \
-          '{taskDefinition:$td,
-            service:{serviceName:$svc, clusterName:$clu}}')
+        # Costruiamo il file deploy.json
+        cat > deploy.json <<EOF
+        {
+          "applicationName": "$APP_NAME",
+          "deploymentGroupName": "$DG_NAME",
+          "deploymentConfigName": "CodeDeployDefault.ECSLinear10PercentEvery1Minutes",
+          "revision": {
+            "revisionType": "ECS",
+            "ecsRevision": {
+              "taskDefinition": "$REVISION_ARN",
+              "service": {
+                "serviceName": "$SERVICE_NAME",
+                "clusterName": "$CLUSTER_NAME"
+              }
+            }
+          }
+        }
+        EOF
 
-        # Lancio del blue/green 10 % ogni minuto
+        echo "==== deploy.json ===="
+        cat deploy.json
+        echo "====================="
+
         aws deploy create-deployment \
-          --application-name "$APP_NAME" \
-          --deployment-group-name "$DG_NAME" \
-          --deployment-config-name CodeDeployDefault.ECSLinear10PercentEvery1Minutes \
-          --revision "revisionType=ECS,ecsRevision=$ECS_REV" \
+          --cli-input-json file://deploy.json \
           --region "$AWS_REGION"
-
