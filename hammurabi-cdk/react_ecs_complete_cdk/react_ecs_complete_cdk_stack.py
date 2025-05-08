@@ -165,11 +165,12 @@ class ReactCdkCompleteStack(Stack):
         )
 
         # App e Deployment‑Group CodeDeploy
-        cd_app = codedeploy.EcsApplication(self, "BlueGreenApp")
+        cd_app = codedeploy.EcsApplication(self, "BlueGreenApp", application_name="BlueGreenApp")
         codedeploy.EcsDeploymentGroup(
             self, "BlueGreenDG",
             application=cd_app,
             service=service.service,
+            deployment_group_name="BlueGreenDG",
             blue_green_deployment_config=codedeploy.EcsBlueGreenDeploymentConfig(
                 listener=service.listener,
                 blue_target_group=blue_tg,
