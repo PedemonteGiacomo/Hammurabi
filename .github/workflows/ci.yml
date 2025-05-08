@@ -80,35 +80,52 @@ jobs:
         IMAGE_TAG:  ${{ steps.build.outputs.tag }}
       run: |
         set -euo pipefail
-        # pattern dei nomi creati dal CDK
-        CLUSTER_PATTERN="ReactEcsCluster"
-        SERVICE_PATTERN="ReactFargateService"
-        # ---------- Cluster (primo che matcha il pattern) ----------
+        
+        # ---------- Debug All Clusters ----------
+        echo "Listing all available ECS clusters:"
+        aws ecs list-clusters --region "$AWS_REGION"
+        
+        # ---------- Get the first cluster (most deployments have only one) ----------
         CLUSTER_ARN=$(aws ecs list-clusters --region "$AWS_REGION" \
-          --query "clusterArns[?contains(@, \`$CLUSTER_PATTERN\`)][0]" \
+          --query "clusterArns[0]" \
           --output text)
+        
         [[ -z "$CLUSTER_ARN" || "$CLUSTER_ARN" == "None" ]] && \
-          { echo "::error ::ECS cluster non trovato"; exit 1; }
+          { echo "::error ::No ECS clusters found in the account"; exit 1; }
+        
         # Extract cluster name properly from ARN
         CLUSTER_NAME=$(echo "$CLUSTER_ARN" | awk -F'/' '{print $NF}')
+        echo "Found cluster: $CLUSTER_NAME ($CLUSTER_ARN)"
         
-        # ---------- Service (primo che matcha) ---------------------
-        SERVICE_ARN=$(aws ecs list-services --cluster "$CLUSTER_ARN" \
+        # ---------- Debug All Services in the Cluster ----------
+        echo "Listing all services in cluster $CLUSTER_NAME:"
+        aws ecs list-services --cluster "$CLUSTER_NAME" --region "$AWS_REGION"
+        
+        # ---------- Get the first service in the cluster ----------
+        SERVICE_ARN=$(aws ecs list-services --cluster "$CLUSTER_NAME" \
           --region "$AWS_REGION" \
-          --query "serviceArns[?contains(@, \`$SERVICE_PATTERN\`)][0]" \
+          --query "serviceArns[0]" \
           --output text)
+        
         [[ -z "$SERVICE_ARN" || "$SERVICE_ARN" == "None" ]] && \
-          { echo "::error ::ECS service non trovato"; exit 1; }
+          { echo "::error ::No ECS services found in cluster $CLUSTER_NAME"; exit 1; }
+        
         # Extract service name properly from ARN
         SERVICE_NAME=$(echo "$SERVICE_ARN" | awk -F'/' '{print $NF}')
+        echo "Found service: $SERVICE_NAME ($SERVICE_ARN)"
         
         # ---------- Task‑definition family -------------------------
+        echo "Getting task definition for service $SERVICE_NAME:"
         TASK_DEF_ARN=$(aws ecs describe-services \
-            --cluster "$CLUSTER_ARN" \
+            --cluster "$CLUSTER_NAME" \
             --services "$SERVICE_NAME" \
             --query 'services[0].taskDefinition' \
             --output text --region "$AWS_REGION")
+            
+        echo "Task definition ARN: $TASK_DEF_ARN"
+        
         FAMILY=$(echo "$TASK_DEF_ARN" | awk -F'/' '{print $NF}' | awk -F':' '{print $1}')
+        echo "Extracted family: $FAMILY"
         
         # ---------- Outputs per gli step dopo ----------------------
         {
@@ -118,7 +135,7 @@ jobs:
           echo "family=$FAMILY"
         } >> "$GITHUB_OUTPUT"
         
-        # Debug output
+        # ---------- Summary ----------
         echo "Resolved CLUSTER_NAME: $CLUSTER_NAME"
         echo "Resolved SERVICE_NAME: $SERVICE_NAME"
         echo "Resolved FAMILY: $FAMILY"
