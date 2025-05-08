@@ -193,43 +193,74 @@ jobs:
         echo "Registered new task definition: $REVISION_ARN"
         echo "revision=$REVISION_ARN" >> "$GITHUB_OUTPUT"
     
-      #---------------------------------------------------------------
-      # 9) Avvia il deployment CodeDeploy con file JSON
-      #---------------------------------------------------------------
-    - name: Create CodeDeploy deployment
+    #---------------------------------------------------------------
+    # 9) Avvia il deployment CodeDeploy con AppSpecContent
+    #---------------------------------------------------------------
+    - name: Create CodeDeploy deployment (AppSpecContent)
       env:
         AWS_REGION:   ${{ env.AWS_REGION }}
-        APP_NAME:     BlueGreenApp          # come nel CDK
-        DG_NAME:      BlueGreenDG           # come nel CDK
+        APP_NAME:     BlueGreenApp
+        DG_NAME:      BlueGreenDG
         CLUSTER_NAME: ${{ steps.resolve.outputs.cluster_name }}
         SERVICE_NAME: ${{ steps.resolve.outputs.service_name }}
         REVISION_ARN: ${{ steps.register.outputs.revision }}
       run: |
         set -euo pipefail
 
-        # Costruiamo il file deploy.json
-        cat > deploy.json <<EOF
+        #############################################################
+        # 9.1  Costruisci l’AppSpec (JSON “pretty”)
+        #############################################################
+        cat > appspec.json <<EOF
+        {
+          "version": "0.0",
+          "Resources": [
+            {
+              "TargetService": {
+                "Type": "AWS::ECS::Service",
+                "Properties": {
+                  "TaskDefinition": "$REVISION_ARN",
+                  "LoadBalancerInfo": {
+                    "ContainerName": "web",
+                    "ContainerPort": 80
+                  }
+                }
+              }
+            }
+          ]
+        }
+        EOF
+
+        #############################################################
+        # 9.2  Comprimi + quota l’AppSpec per metterlo in "content"
+        #      jq -c   -> compatta il JSON
+        #      jq -Rs. -> lo trasforma in stringa JSON escapata
+        #############################################################
+        APP_SPEC_STR=$(jq -c '.' appspec.json | jq -Rs .)
+
+        #############################################################
+        # 9.3  Crea il file create-deployment.json
+        #############################################################
+        cat > create-deployment.json <<EOF
         {
           "applicationName": "$APP_NAME",
           "deploymentGroupName": "$DG_NAME",
           "deploymentConfigName": "CodeDeployDefault.ECSLinear10PercentEvery1Minutes",
           "revision": {
-            "revisionType": "ECS",
-            "ecsRevision": {
-              "taskDefinition": "$REVISION_ARN",
-              "service": {
-                "serviceName": "$SERVICE_NAME",
-                "clusterName": "$CLUSTER_NAME"
-              }
+            "revisionType": "AppSpecContent",
+            "appSpecContent": {
+              "content": $APP_SPEC_STR
             }
           }
         }
         EOF
 
-        echo "==== deploy.json ===="
-        cat deploy.json
-        echo "====================="
+        echo "===== create-deployment.json ====="
+        cat create-deployment.json
+        echo "================================="
 
+        #############################################################
+        # 9.4  Avvia il Blue/Green
+        #############################################################
         aws deploy create-deployment \
-          --cli-input-json file://deploy.json \
+          --cli-input-json file://create-deployment.json \
           --region "$AWS_REGION"
