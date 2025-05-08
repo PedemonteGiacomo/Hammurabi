@@ -10,22 +10,22 @@ on:
 #######################################
 env:
   AWS_REGION:      ${{ secrets.AWS_REGION }}
-  # ECR completo <account>.dkr.ecr.<region>.amazonaws.com/<repo>
+  # ECR completo <account>.dkr.ecr.<region>.amazonaws.com/<repo>
   ECR_REPO:        ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hammurabi-ui-prod
-  # nome dello stack CDK (→ CloudFormation)
-  STACK_NAME:      ReactCdkCompleteStack          # <- cambia se serve
+  # Nome dello stack CDK
+  STACK_NAME:      ReactCdkCompleteStack        # cambia se serve
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: CI
     permissions:
-      id-token: write      # OIDC per assumere il ruolo AWS
+      id-token: write
       contents: read
 
     steps:
     #################################################################
-    # 1) Checkout del codice
+    # 1) Checkout
     #################################################################
     - uses: actions/checkout@v4
 
@@ -37,10 +37,10 @@ jobs:
         role-to-assume: ${{ secrets.GH_OIDC_ROLE_ARN }}
         aws-region:     ${{ env.AWS_REGION }}
 
-    - uses: aws-actions/amazon-ecr-login@v1   # login `docker`
+    - uses: aws-actions/amazon-ecr-login@v1   # login docker
 
     #################################################################
-    # 3) Build & push dell’immagine
+    # 3) Build & push immagine
     #################################################################
     - name: Build & push Docker
       id: build
@@ -63,7 +63,7 @@ jobs:
     - run: pip3 install -r hammurabi-cdk/requirements.txt
 
     #################################################################
-    # 5) Google OAuth secrets (file locale al repo CDK)
+    # 5) Google OAuth secrets
     #################################################################
     - name: Inject Google OAuth secrets
       run: |
@@ -77,7 +77,7 @@ jobs:
         EOF
 
     #################################################################
-    # 6) CDK deploy (infrastruttura – NON aggiorna le task)
+    # 6) CDK deploy (infra only)
     #################################################################
     - name: CDK deploy (infra only)
       run: |
@@ -87,17 +87,17 @@ jobs:
           --require-approval never
 
     #################################################################
-    # 7) Prerequisiti local (jq)
+    # 7) jq
     #################################################################
-    - name: Install utility jq
+    - name: Install jq
       run: |
         sudo apt-get update -y
         sudo apt-get install -y jq
 
     #################################################################
-    # 8) Estrai nomi/ARN reali da CloudFormation
+    # 8) Resolve ECS / CodeDeploy resources
     #################################################################
-    - name: Resolve ECS / CodeDeploy resources
+    - name: Resolve ECS / CodeDeploy resources
       id: resolve
       env:
         AWS_REGION: ${{ env.AWS_REGION }}
@@ -105,52 +105,54 @@ jobs:
       run: |
         set -euo pipefail
 
-        # ---- ECS service (physical id) ---------------------------
+        # ---------- Service ARN (primo AWS::ECS::Service nello stack)
         ECS_SERVICE=$(aws cloudformation describe-stack-resources \
             --stack-name "$STACK" \
-            --logical-resource-id ReactFargateServiceService \
-            --query 'StackResources[0].PhysicalResourceId' \
-            --output text \
-            --region "$AWS_REGION")
+            --query "StackResources[?ResourceType=='AWS::ECS::Service'][0].PhysicalResourceId" \
+            --output text --region "$AWS_REGION")
         echo "ECS_SERVICE=$ECS_SERVICE"
 
-        # cluster & service name si ricavano dall’ARN:
-        # arn:aws:ecs:REGION:ACC:service/CLUSTER/SERVICE
-        CLUSTER_NAME=$(echo "$ECS_SERVICE" | cut -d'/' -f2)
-        SERVICE_NAME=$(echo "$ECS_SERVICE" | cut -d'/' -f3)
+        # ---------- Cluster ARN (primo AWS::ECS::Cluster)
+        CLUSTER_ARN=$(aws cloudformation describe-stack-resources \
+            --stack-name "$STACK" \
+            --query "StackResources[?ResourceType=='AWS::ECS::Cluster'][0].PhysicalResourceId" \
+            --output text --region "$AWS_REGION")
 
-        # ---- task‑definition family ------------------------------
+        # Parso nomi dal service‑ARN  arn:...:service/<cluster>/<service>
+        CLUSTER_NAME=$(echo "$ECS_SERVICE"  | cut -d'/' -f2)
+        SERVICE_NAME=$(echo "$ECS_SERVICE"  | cut -d'/' -f3)
+
+        # ---------- Task‑definition family
         TASK_DEF_ARN=$(aws ecs describe-services \
-            --cluster "$CLUSTER_NAME" \
+            --cluster "$CLUSTER_ARN" \
             --services "$SERVICE_NAME" \
             --query 'services[0].taskDefinition' \
             --output text --region "$AWS_REGION")
         FAMILY=$(basename "$TASK_DEF_ARN" | cut -d':' -f1)
 
-        # ---- CodeDeploy app & deployment‑group -------------------
+        # ---------- CodeDeploy app & deployment group
         CD_APP=$(aws cloudformation describe-stack-resources \
             --stack-name "$STACK" \
-            --logical-resource-id BlueGreenApp \
-            --query 'StackResources[0].PhysicalResourceId' \
+            --query "StackResources[?ResourceType=='AWS::CodeDeploy::Application'][0].PhysicalResourceId" \
             --output text --region "$AWS_REGION")
 
         CD_DG=$(aws cloudformation describe-stack-resources \
             --stack-name "$STACK" \
-            --logical-resource-id BlueGreenDG \
-            --query 'StackResources[0].PhysicalResourceId' \
+            --query "StackResources[?ResourceType=='AWS::CodeDeploy::DeploymentGroup'][0].PhysicalResourceId" \
             --output text --region "$AWS_REGION")
 
-        # ---- set outputs per gli step successivi -----------------
+        # ---------- Outputs
         {
-          echo "cluster=$CLUSTER_NAME"
-          echo "service=$SERVICE_NAME"
+          echo "cluster_name=$CLUSTER_NAME"
+          echo "cluster_arn=$CLUSTER_ARN"
+          echo "service_name=$SERVICE_NAME"
           echo "family=$FAMILY"
           echo "cd_app=$CD_APP"
           echo "cd_dg=$CD_DG"
         } >> "$GITHUB_OUTPUT"
 
     #################################################################
-    # 9) Registra una nuova task‑definition con la nuova immagine
+    # 9) Nuova task‑definition con la nuova immagine
     #################################################################
     - name: Register new task definition
       id: register
@@ -162,18 +164,15 @@ jobs:
       run: |
         set -euo pipefail
 
-        # scarica l’ultima task‑definition in JSON
         aws ecs describe-task-definition \
             --task-definition "$FAMILY" \
             --region "$AWS_REGION" \
           | jq '.taskDefinition' > td.json
 
-        # sostituisci il tag dell’immagine (primo container)
         jq --arg img "$ECR_REPO:$IMAGE_TAG" \
            '.containerDefinitions[0].image = $img' \
            td.json > new-td.json
 
-        # registra la nuova revisione
         REVISION_ARN=$(aws ecs register-task-definition \
                            --cli-input-json file://new-td.json \
                            --region "$AWS_REGION" \
@@ -183,20 +182,19 @@ jobs:
         echo "revision=$REVISION_ARN" >> "$GITHUB_OUTPUT"
 
     #################################################################
-    # 10) Avvia il deployment CodeDeploy (Linear 10 % / 1 min)
+    # 10) Avvia il deployment CodeDeploy
     #################################################################
     - name: Create CodeDeploy deployment
       env:
         AWS_REGION:   ${{ env.AWS_REGION }}
         APP_NAME:     ${{ steps.resolve.outputs.cd_app }}
         DG_NAME:      ${{ steps.resolve.outputs.cd_dg }}
-        CLUSTER_NAME: ${{ steps.resolve.outputs.cluster }}
-        SERVICE_NAME: ${{ steps.resolve.outputs.service }}
+        CLUSTER_NAME: ${{ steps.resolve.outputs.cluster_name }}
+        SERVICE_NAME: ${{ steps.resolve.outputs.service_name }}
         REVISION_ARN: ${{ steps.register.outputs.revision }}
       run: |
         set -euo pipefail
 
-        # JSON ECS revision per CodeDeploy
         jq -n \
           --arg td  "$REVISION_ARN" \
           --arg svc "$SERVICE_NAME" \
