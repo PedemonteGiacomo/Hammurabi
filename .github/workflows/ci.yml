@@ -1,8 +1,6 @@
 # .github/workflows/ci‑cd.yml
 name: CI‑CD
-
 on: { push: { branches: [ main ] }, pull_request: { branches: [ main ] } }
-
 #######################################
 # VARIABILI COMUNI
 #######################################
@@ -10,26 +8,21 @@ env:
   AWS_REGION:   ${{ secrets.AWS_REGION }}
   ECR_REPO:     ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hammurabi-ui-prod
   STACK_NAME:   ReactCdkCompleteStack          # se cambi lo stack, modificalo qui
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: CI
     permissions: { id-token: write, contents: read }
-
     steps:
     #---------------------------------------------------------------
-    # 1) Checkout + credenziali + login ECR
+    # 1) Checkout + credenziali + login ECR
     #---------------------------------------------------------------
     - uses: actions/checkout@v4
-
     - uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: ${{ secrets.GH_OIDC_ROLE_ARN }}
         aws-region:     ${{ env.AWS_REGION }}
-
     - uses: aws-actions/amazon-ecr-login@v1
-
     #---------------------------------------------------------------
     # 2) Build & push immagine
     #---------------------------------------------------------------
@@ -43,16 +36,13 @@ jobs:
                      Hammurabi/hammurabi-ui
         docker push $ECR_REPO:$TAG
         echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-
     #---------------------------------------------------------------
     # 3) Toolchain (Node, CDK, pip)
     #---------------------------------------------------------------
     - uses: actions/setup-node@v4
       with: { node-version: 20 }
-
     - run: npm install -g aws-cdk@2
     - run: pip3 install -r hammurabi-cdk/requirements.txt
-
     #---------------------------------------------------------------
     # 4) Google OAuth secrets → file locale
     #---------------------------------------------------------------
@@ -66,9 +56,8 @@ jobs:
           }
         }
         EOF
-
     #---------------------------------------------------------------
-    # 5) CDK deploy (infra)
+    # 5) CDK deploy (infra)
     #---------------------------------------------------------------
     - name: CDK deploy (infra only)
       run: |
@@ -76,13 +65,11 @@ jobs:
         cdk deploy $STACK_NAME \
           -c imageTag=${{ steps.build.outputs.tag }} \
           --require-approval never
-
     #---------------------------------------------------------------
     # 6) jq
     #---------------------------------------------------------------
     - name: Install jq
       run: sudo apt-get update -y && sudo apt-get install -y jq
-
     #---------------------------------------------------------------
     # 7) Risolvi cluster, service, family
     #---------------------------------------------------------------
@@ -93,18 +80,18 @@ jobs:
         IMAGE_TAG:  ${{ steps.build.outputs.tag }}
       run: |
         set -euo pipefail
-
         # pattern dei nomi creati dal CDK
         CLUSTER_PATTERN="ReactEcsCluster"
         SERVICE_PATTERN="ReactFargateService"
-
         # ---------- Cluster (primo che matcha il pattern) ----------
         CLUSTER_ARN=$(aws ecs list-clusters --region "$AWS_REGION" \
           --query "clusterArns[?contains(@, \`$CLUSTER_PATTERN\`)][0]" \
           --output text)
         [[ -z "$CLUSTER_ARN" || "$CLUSTER_ARN" == "None" ]] && \
           { echo "::error ::ECS cluster non trovato"; exit 1; }
-
+        # Extract cluster name properly from ARN
+        CLUSTER_NAME=$(echo "$CLUSTER_ARN" | awk -F'/' '{print $NF}')
+        
         # ---------- Service (primo che matcha) ---------------------
         SERVICE_ARN=$(aws ecs list-services --cluster "$CLUSTER_ARN" \
           --region "$AWS_REGION" \
@@ -112,18 +99,17 @@ jobs:
           --output text)
         [[ -z "$SERVICE_ARN" || "$SERVICE_ARN" == "None" ]] && \
           { echo "::error ::ECS service non trovato"; exit 1; }
-
-        CLUSTER_NAME=${CLUSTER_ARN##*/}
-        SERVICE_NAME=${SERVICE_ARN##*/}
-
+        # Extract service name properly from ARN
+        SERVICE_NAME=$(echo "$SERVICE_ARN" | awk -F'/' '{print $NF}')
+        
         # ---------- Task‑definition family -------------------------
         TASK_DEF_ARN=$(aws ecs describe-services \
             --cluster "$CLUSTER_ARN" \
             --services "$SERVICE_NAME" \
             --query 'services[0].taskDefinition' \
             --output text --region "$AWS_REGION")
-        FAMILY=$(basename "$TASK_DEF_ARN" | cut -d':' -f1)
-
+        FAMILY=$(echo "$TASK_DEF_ARN" | awk -F'/' '{print $NF}' | awk -F':' '{print $1}')
+        
         # ---------- Outputs per gli step dopo ----------------------
         {
           echo "cluster_name=$CLUSTER_NAME"
@@ -131,7 +117,11 @@ jobs:
           echo "service_name=$SERVICE_NAME"
           echo "family=$FAMILY"
         } >> "$GITHUB_OUTPUT"
-
+        
+        # Debug output
+        echo "Resolved CLUSTER_NAME: $CLUSTER_NAME"
+        echo "Resolved SERVICE_NAME: $SERVICE_NAME"
+        echo "Resolved FAMILY: $FAMILY"
     #---------------------------------------------------------------
     # 8) Registra una nuova task‑definition
     #---------------------------------------------------------------
@@ -144,23 +134,18 @@ jobs:
         ECR_REPO:   ${{ env.ECR_REPO }}
       run: |
         set -euo pipefail
-
         aws ecs describe-task-definition \
             --task-definition "$FAMILY" \
             --region "$AWS_REGION" \
           | jq '.taskDefinition' > td.json
-
         jq --arg img "$ECR_REPO:$IMAGE_TAG" \
            '.containerDefinitions[0].image = $img' td.json > new-td.json
-
         REVISION_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://new-td.json \
             --region "$AWS_REGION" \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
-
         echo "revision=$REVISION_ARN" >> "$GITHUB_OUTPUT"
-
     #---------------------------------------------------------------
     # 9) Avvia il deployment CodeDeploy
     #---------------------------------------------------------------
@@ -174,7 +159,6 @@ jobs:
         REVISION_ARN: ${{ steps.register.outputs.revision }}
       run: |
         set -euo pipefail
-
         jq -n \
           --arg td  "$REVISION_ARN" \
           --arg svc "$SERVICE_NAME" \
@@ -182,7 +166,6 @@ jobs:
           '{taskDefinition:$td,
             service:{serviceName:$svc, clusterName:$clu}}' \
           > ecs-rev.json
-
         aws deploy create-deployment \
           --application-name "$APP_NAME" \
           --deployment-group-name "$DG_NAME" \
