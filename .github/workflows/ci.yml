@@ -205,16 +205,29 @@ jobs:
         REVISION_ARN: ${{ steps.register.outputs.revision }}
       run: |
         set -euo pipefail
-        jq -n \
-          --arg td  "$REVISION_ARN" \
-          --arg svc "$SERVICE_NAME" \
-          --arg clu "$CLUSTER_NAME" \
-          '{taskDefinition:$td,
-            service:{serviceName:$svc, clusterName:$clu}}' \
-          > ecs-rev.json
+        
+        # Create the ECS revision info
+        cat > ecs-rev.json <<EOF
+        {
+          "taskDefinition": "$REVISION_ARN",
+          "service": {
+            "serviceName": "$SERVICE_NAME",
+            "clusterName": "$CLUSTER_NAME"
+          }
+        }
+        EOF
+        
+        # Print the revision info for debugging
+        echo "ECS revision info:"
+        cat ecs-rev.json
+        
+        # Compress the JSON to a single line with no spaces
+        ECS_REVISION=$(jq -c '.' ecs-rev.json)
+        
+        # Create the deployment with properly escaped JSON
         aws deploy create-deployment \
           --application-name "$APP_NAME" \
           --deployment-group-name "$DG_NAME" \
           --deployment-config-name CodeDeployDefault.ECSLinear10PercentEvery1Minutes \
-          --revision revisionType=ECS,ecsRevision="$(cat ecs-rev.json)" \
+          --revision "revisionType=ECS,ecsRevision=$ECS_REVISION" \
           --region "$AWS_REGION"
