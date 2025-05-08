@@ -206,28 +206,35 @@ jobs:
       run: |
         set -euo pipefail
         
-        # Create the ECS revision info
-        cat > ecs-rev.json <<EOF
+        # Debug environment variables
+        echo "CLUSTER_NAME: $CLUSTER_NAME"
+        echo "SERVICE_NAME: $SERVICE_NAME"
+        echo "REVISION_ARN: $REVISION_ARN"
+        
+        # Create the deployment info file
+        cat > deploy-info.json <<EOF
         {
-          "taskDefinition": "$REVISION_ARN",
-          "service": {
-            "serviceName": "$SERVICE_NAME",
-            "clusterName": "$CLUSTER_NAME"
+          "applicationName": "$APP_NAME",
+          "deploymentGroupName": "$DG_NAME",
+          "deploymentConfigName": "CodeDeployDefault.ECSLinear10PercentEvery1Minutes",
+          "revision": {
+            "revisionType": "ECS",
+            "ecsRevision": {
+              "taskDefinition": "$REVISION_ARN",
+              "service": {
+                "serviceName": "$SERVICE_NAME",
+                "clusterName": "$CLUSTER_NAME"
+              }
+            }
           }
         }
         EOF
         
-        # Print the revision info for debugging
-        echo "ECS revision info:"
-        cat ecs-rev.json
+        # Print the deployment info for debugging
+        echo "Deployment info:"
+        cat deploy-info.json
         
-        # Compress the JSON to a single line with no spaces
-        ECS_REVISION=$(jq -c '.' ecs-rev.json)
-        
-        # Create the deployment with properly escaped JSON
+        # Create the deployment using the JSON file
         aws deploy create-deployment \
-          --application-name "$APP_NAME" \
-          --deployment-group-name "$DG_NAME" \
-          --deployment-config-name CodeDeployDefault.ECSLinear10PercentEvery1Minutes \
-          --revision "revisionType=ECS,ecsRevision=$ECS_REVISION" \
+          --cli-input-json file://deploy-info.json \
           --region "$AWS_REGION"
