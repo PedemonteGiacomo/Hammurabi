@@ -192,9 +192,8 @@ jobs:
             
         echo "Registered new task definition: $REVISION_ARN"
         echo "revision=$REVISION_ARN" >> "$GITHUB_OUTPUT"
-    #---------------------------------------------------------------
-    # 9) Avvia il deployment CodeDeploy
-    #---------------------------------------------------------------
+    
+    #--------------- 9) Avvia il deployment CodeDeploy -----------------
     - name: Create CodeDeploy deployment
       env:
         AWS_REGION:   ${{ env.AWS_REGION }}
@@ -205,58 +204,22 @@ jobs:
         REVISION_ARN: ${{ steps.register.outputs.revision }}
       run: |
         set -euo pipefail
-        
-        # Debug environment variables
-        echo "CLUSTER_NAME: $CLUSTER_NAME"
-        echo "SERVICE_NAME: $SERVICE_NAME"
-        echo "REVISION_ARN: $REVISION_ARN"
-        
-        # Create the ECS JSON for appspec content
-        cat > appspec.json <<EOF
+
+        # JSON richiesto da revisionType=ECS
+        cat > ecs-revision.json <<EOF
         {
-          "version": 0.0,
-          "Resources": [
-            {
-              "TargetService": {
-                "Type": "AWS::ECS::Service",
-                "Properties": {
-                  "TaskDefinition": "$REVISION_ARN",
-                  "LoadBalancerInfo": {
-                    "ContainerName": "web-container",
-                    "ContainerPort": 80
-                  }
-                }
-              }
-            }
-          ]
-        }
-        EOF
-        
-        # Print appspec for debugging
-        echo "AppSpec content:"
-        cat appspec.json
-        
-        # Create the deployment info file
-        cat > deploy-info.json <<EOF
-        {
-          "applicationName": "$APP_NAME",
-          "deploymentGroupName": "$DG_NAME",
-          "deploymentConfigName": "CodeDeployDefault.ECSLinear10PercentEvery1Minutes",
-          "revision": {
-            "revisionType": "AppSpecContent",
-            "appSpecContent": {
-              "content": $(jq -c '.' appspec.json),
-              "sha256": "$(cat appspec.json | sha256sum | awk '{print $1}')"
-            }
+          "taskDefinition": "$REVISION_ARN",
+          "service": {
+            "serviceName": "$SERVICE_NAME",
+            "clusterName": "$CLUSTER_NAME"
           }
         }
         EOF
-        
-        # Print the deployment info for debugging
-        echo "Deployment info:"
-        cat deploy-info.json
-        
-        # Create the deployment using the JSON file
+
+        # Avvia il blue/green (Linear 10 % / 1 min)
         aws deploy create-deployment \
-          --cli-input-json file://deploy-info.json \
+          --application-name "$APP_NAME" \
+          --deployment-group-name "$DG_NAME" \
+          --deployment-config-name CodeDeployDefault.ECSLinear10PercentEvery1Minutes \
+          --revision revisionType=ECS,ecsRevision="$(cat ecs-revision.json)" \
           --region "$AWS_REGION"
