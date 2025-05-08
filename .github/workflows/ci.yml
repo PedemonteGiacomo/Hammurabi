@@ -151,17 +151,46 @@ jobs:
         ECR_REPO:   ${{ env.ECR_REPO }}
       run: |
         set -euo pipefail
+        # Get current task definition
         aws ecs describe-task-definition \
             --task-definition "$FAMILY" \
             --region "$AWS_REGION" \
-          | jq '.taskDefinition' > td.json
+          | jq '.taskDefinition' > td-full.json
+          
+        # Print the full task definition for debugging
+        echo "Original task definition:"
+        cat td-full.json
+        
+        # Extract only the fields needed for register-task-definition
+        jq '{
+          family: .family,
+          taskRoleArn: .taskRoleArn,
+          executionRoleArn: .executionRoleArn,
+          networkMode: .networkMode,
+          containerDefinitions: .containerDefinitions,
+          volumes: .volumes,
+          placementConstraints: .placementConstraints,
+          requiresCompatibilities: .requiresCompatibilities,
+          cpu: .cpu,
+          memory: .memory
+        }' td-full.json > td-clean.json
+        
+        # Update the image in the container definitions
         jq --arg img "$ECR_REPO:$IMAGE_TAG" \
-           '.containerDefinitions[0].image = $img' td.json > new-td.json
+           '.containerDefinitions[0].image = $img' td-clean.json > new-td.json
+           
+        # Debug the new task definition
+        echo "New task definition to register:"
+        cat new-td.json
+        
+        # Register the new task definition
         REVISION_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://new-td.json \
             --region "$AWS_REGION" \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
+            
+        echo "Registered new task definition: $REVISION_ARN"
         echo "revision=$REVISION_ARN" >> "$GITHUB_OUTPUT"
     #---------------------------------------------------------------
     # 9) Avvia il deployment CodeDeploy
