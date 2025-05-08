@@ -141,29 +141,35 @@ jobs:
         echo "Resolved FAMILY: $FAMILY"
 
     #---------------------------------------------------------------
-    # 7‑cd) Risolvi CodeDeploy Application & Deployment Group
+    # 7‑cd) Resolve CodeDeploy Application & Deployment Group
     #---------------------------------------------------------------
-    - name: Resolve CodeDeploy resources
+    - name: Resolve CodeDeploy resources (by ResourceType)
       id: cd
       env:
         AWS_REGION: ${{ env.AWS_REGION }}
         STACK_NAME: ${{ env.STACK_NAME }}
       run: |
         set -euo pipefail
-        APP=$(aws cloudformation describe-stack-resources \
+
+        APP=$(aws cloudformation list-stack-resources \
+               --stack-name "$STACK_NAME" \
+               --query "StackResourceSummaries[?ResourceType=='AWS::CodeDeploy::Application'] \
+                        | [0].PhysicalResourceId" \
+               --output text --region "$AWS_REGION")
+
+        DG=$(aws cloudformation list-stack-resources \
               --stack-name "$STACK_NAME" \
-              --query "StackResources[?LogicalResourceId=='BlueGreenApp'].PhysicalResourceId" \
+              --query "StackResourceSummaries[?ResourceType=='AWS::CodeDeploy::DeploymentGroup'] \
+                       | [0].PhysicalResourceId" \
               --output text --region "$AWS_REGION")
-        DG=$(aws cloudformation describe-stack-resources \
-             --stack-name "$STACK_NAME" \
-             --query "StackResources[?LogicalResourceId=='BlueGreenDG'].PhysicalResourceId" \
-             --output text --region "$AWS_REGION")
-        [[ "$APP" == "None" || -z "$APP" ]] && { echo "::error ::CodeDeploy application non trovata"; exit 1; }
-        [[ "$DG"  == "None" || -z "$DG"  ]] && { echo "::error ::CodeDeploy deployment group non trovato"; exit 1; }
+
+        [[ -z "$APP" || "$APP" == "None" ]] && { echo "::error ::CodeDeploy application not found"; exit 1; }
+        [[ -z "$DG"  || "$DG"  == "None" ]] && { echo "::error ::CodeDeploy deployment group not found"; exit 1; }
+
         echo "cd_app=$APP" >> "$GITHUB_OUTPUT"
         echo "cd_dg=$DG"  >> "$GITHUB_OUTPUT"
-        echo "CodeDeploy Application: $APP"
-        echo "Deployment Group:       $DG"
+        echo "CodeDeploy Application: $APP"
+        echo "Deployment Group:       $DG"
         
     #---------------------------------------------------------------
     # 8) Registra una nuova task‑definition
