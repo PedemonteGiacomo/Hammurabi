@@ -164,7 +164,7 @@ jobs:
         echo "cd_dg=$DG"  >> "$GITHUB_OUTPUT"
         echo "CodeDeploy Application: $APP"
         echo "Deployment Group:       $DG"
-
+        
     #---------------------------------------------------------------
     # 8) Registra una nuova task‑definition
     #---------------------------------------------------------------
@@ -225,8 +225,8 @@ jobs:
     - name: Create CodeDeploy deployment (AppSpecContent)
       env:
         AWS_REGION:   ${{ env.AWS_REGION }}
-        APP_NAME:     ${{ steps.cd.outputs.cd_app }}
-        DG_NAME:      ${{ steps.cd.outputs.cd_dg }}
+        APP_NAME:     BlueGreenApp
+        DG_NAME:      BlueGreenDG
         CLUSTER_NAME: ${{ steps.resolve.outputs.cluster_name }}
         SERVICE_NAME: ${{ steps.resolve.outputs.service_name }}
         REVISION_ARN: ${{ steps.register.outputs.revision }}
