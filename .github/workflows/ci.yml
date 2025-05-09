@@ -276,7 +276,7 @@ jobs:
         {
           "applicationName": "$APP_NAME",
           "deploymentGroupName": "$DG_NAME",
-          "deploymentConfigName": "CodeDeployDefault.ECSLinear10PercentEvery1Minutes",
+          "deploymentConfigName": "CodeDeployDefault.ECSCanary10Percent5Minutes",
           "revision": {
             "revisionType": "AppSpecContent",
             "appSpecContent": {
