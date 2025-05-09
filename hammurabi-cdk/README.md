@@ -63,4 +63,4 @@ pip install -r requirements.txt
 cdk deploy ReactEcsCdkStack --output ecs.cdk.out # specify a custom output for different stacks to be deployed
 ```
 
-blue/green deployment try updated, new push
+blue/green deployment try updated, new version
