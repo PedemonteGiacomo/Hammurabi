@@ -59,7 +59,7 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
           onClick={onToggleBrightnessMode}
           style={{ cursor: 'pointer' }}
         >
-          <img src="/assets/brightness-up.svg" alt="Brightness Mode" />
+          <img src="/assets/brightness-mode.svg" alt="Brightness Mode" />
         </li>
 
         {/* Brightness Up */}
