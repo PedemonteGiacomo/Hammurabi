@@ -1,55 +1,58 @@
 # ------------------------------------------------------------------
-# Stage 1 – build del front‑end React
+# Stage 1 – build del front‑end React
 # ------------------------------------------------------------------
+    
 FROM node:18-alpine AS build
 
+    # ► TAG di versione passato dalla pipeline; default = dev
 ARG VERSION_INFO=dev
+    
 WORKDIR /app
     
-# ------------------------------------------------------------
-# 1. copia solo i manifest                (— cache layer —)
-# ------------------------------------------------------------
+    # Solo i package* per sfruttare la cache layer
 COPY package*.json ./
+RUN npm ci --legacy-peer-deps
     
-# ------------------------------------------------------------
-# 2. risolve il conflitto vite/vitest → @types/node >= 18
-#    * sovrascrive solo il lock‑file, NON scarica i pacchetti
-#    * poi `npm ci` funziona senza errori
-# ------------------------------------------------------------
-RUN npm pkg set overrides.@types/node="^20" \
- && npm install --package-lock-only --ignore-scripts \
- && npm ci                        # installazione pulita
-    
-# 3. copia il resto del codice
+    # Copia il resto del codice
 COPY . .
     
-# 4. variabile build‑time per CRA
+    # Espone la versione al processo di build CRA
+    #   👉 sarà disponibile in React come process.env.REACT_APP_VERSION
 ENV REACT_APP_VERSION=$VERSION_INFO
     
+    # IMPORTANT: non usare .env qui – le variabili runtime saranno iniettate
 RUN npm run build
     
-# ------------------------------------------------------------------
-# Stage 2 – Nginx + entrypoint che inietta la config runtime
-# ------------------------------------------------------------------
+    
+    # ------------------------------------------------------------------
+    # Stage 2 – Nginx + entrypoint che inietta la config runtime
+    # ------------------------------------------------------------------
 FROM nginx:alpine
+    
+    # Rendi disponibile lo stesso ARG anche in questo stage
 ARG VERSION_INFO=dev
     
+    # Serve per envsubst
 RUN apk add --no-cache gettext
     
-# config Nginx custom
+    # Config Nginx custom
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
     
-# artefatti build
+    # Output della build
 COPY --from=build /app/build /usr/share/nginx/html
     
-# template + entrypoint
+    # Template JS + entrypoint
 COPY env-config.js.template /usr/share/nginx/html/env-config.js.template
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
     
+    # Etichetta utile (es. per ECR & traceability)
 LABEL version=$VERSION_INFO
+    
 EXPOSE 80
     
+    # Genera env‑config.js e poi resta in foreground
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
+    
