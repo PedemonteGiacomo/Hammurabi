@@ -1,0 +1,79 @@
+.slider {
+  position: relative;
+  flex-grow: 1;
+  user-select: none;
+  min-width: 50px;
+  box-sizing: border-box;
+}
+
+.slider *,
+.slider *:before,
+.slider *:after {
+  box-sizing: inherit;
+}
+
+.trackContainer {
+  position: relative;
+}
+
+.trackContainer .tracks {
+  position: relative;
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+
+  /* Mask rounded edges for all tracks together. */
+  --mask:
+    linear-gradient(to right, black, black),
+    url('data:image/svg+xml,<svg viewBox="0 0 3 6" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h3a3 3 180 000 6H0z"/></svg>')
+      left center / auto 6px no-repeat,
+    url('data:image/svg+xml,<svg viewBox="0 0 3 6" xmlns="http://www.w3.org/2000/svg"><path d="M0 0a3 3 180 010 6h3V0z"/></svg>')
+      right center / auto 6px no-repeat;
+
+  /* Necessary for Chromium browsers. */
+  -webkit-mask: var(--mask);
+  -webkit-mask-composite: source-out, source-over, source-over;
+
+  mask: var(--mask);
+  mask-composite: subtract, add, add;
+}
+
+.track {
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.track > div {
+  height: 6px;
+  flex: 1;
+}
+
+.thumb {
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+
+  transition-property: height, width;
+  transition-duration: 200ms;
+
+  height: 0;
+  width: 0;
+}
+
+.circle {
+  background: white;
+  border-radius: 50%;
+  border: 2px solid rgb(3, 105, 170);
+
+  height: 100%;
+  width: 100%;
+}
+
+.slider:hover .thumb,
+.slider.dragging .thumb {
+  height: 14px;
+  width: 14px;
+}

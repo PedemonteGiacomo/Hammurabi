@@ -1,0 +1,8 @@
+.disabled {
+  color: gray;
+  cursor: initial;
+}
+
+.icon {
+  display: flex;
+}
