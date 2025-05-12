@@ -1,7 +1,6 @@
 // src/pages/ViewerPage.tsx
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate, useLocation } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import ViewerToolbar from '../components/ViewerToolbar';
 import Viewer from '../components/newViewer';
@@ -11,16 +10,15 @@ import Sidebar from '../components/Sidebar';
 
 const ViewerPage: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const [selectedSeries, setSelectedSeries] = useState<any | null>(null);
+  const location = useLocation();
+  // serie passata da SelectionPage (potrebbe essere undefined)
+  const selectedSeries = (location.state as { series?: any })?.series ?? null;
   const [metadata, setMetadata] = useState<any | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
 
   // If no series is selected, go back to the study list.
   useEffect(() => {
-    if (!selectedSeries) {
-      navigate('/');
-    }
+    if (!selectedSeries) navigate('/');
   }, [selectedSeries, navigate]);
 
   // Toggle the sidebar's visibility.

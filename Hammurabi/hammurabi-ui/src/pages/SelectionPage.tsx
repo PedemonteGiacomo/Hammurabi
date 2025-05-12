@@ -12,8 +12,7 @@ const SelectionPage: React.FC = () => {
 
   // When a series is selected, store it in local state and navigate to the viewer page.
   const handleSelectSeries = (series: SeriesInfo) => {
-    setSelectedSeries(series);
-    navigate('/viewer');
+    navigate('/viewer', { state: { series } });
   };
 
   return (
@@ -30,4 +29,5 @@ const SelectionPage: React.FC = () => {
 };
 
 export default SelectionPage;
-// ...existing code...
+
+
