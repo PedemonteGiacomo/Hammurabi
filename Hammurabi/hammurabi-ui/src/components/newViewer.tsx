@@ -11,12 +11,10 @@ import React, {
 } from "react";
 import dicomParser from "dicom-parser";
 
-// Import corretto: FrameViewportRef è esportato da index.ts
 import {
     FrameViewport,
     type FrameViewportRef,
 } from "../newViewport/components/FrameViewport";
-
 import { Navigation } from "../newViewport/components/Navigation";
 import { Circle } from "../newViewport/components/Overlays";
 import { SeriesInfo } from "./NestedDicomTable";
@@ -40,6 +38,7 @@ async function imageFromPixelData(
     const imageData = ctx.createImageData(width, height);
     const out = imageData.data;
     const maxSampleValue = bitsAllocated === 16 ? 65535 : 255;
+
     for (let i = 0; i < pixelData.length; i++) {
         const v =
             bitsAllocated === 16
@@ -50,8 +49,8 @@ async function imageFromPixelData(
         out[o] = out[o + 1] = out[o + 2] = v8;
         out[o + 3] = 255;
     }
-    ctx.putImageData(imageData, 0, 0);
 
+    ctx.putImageData(imageData, 0, 0);
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => resolve(img);
@@ -63,7 +62,7 @@ async function loadDicomImage(filePath: string) {
     console.log(`[NewViewer] fetch ${filePath}`);
     const encodedPath = filePath
         .split("/")
-        .map((segment) => encodeURIComponent(segment))
+        .map((seg) => encodeURIComponent(seg))
         .join("/");
     const url = `${window.location.origin}${encodedPath}`;
     console.log(`[NewViewer] fetching DICOM at ${url}`);
@@ -100,7 +99,12 @@ async function loadDicomImage(filePath: string) {
         manufacturer: dataSet.string("x00080070") || "Unknown",
     } as const;
 
-    const image = await imageFromPixelData(cols, rows, pixelData, bitsAllocated);
+    const image = await imageFromPixelData(
+        cols,
+        rows,
+        pixelData,
+        bitsAllocated
+    );
     return { image, metadata } as const;
 }
 
@@ -109,64 +113,78 @@ async function loadDicomImage(filePath: string) {
 /* -------------------------------------------------------------------------- */
 
 export interface Metadata {
-    patientId: string;
-    patientName: string;
-    patientSex: string;
-    studyDate: string;
-    studyDescription: string;
-    seriesDescription: string;
-    manufacturer: string;
-}
-
-export interface ViewerProps {
-    series: SeriesInfo | null;
-    onMetadataExtracted?: (md: Metadata) => void;
+    patientId?: string;
+    patientName?: string;
+    patientSex?: string;
+    studyDate?: string;
+    studyDescription?: string;
+    seriesDescription?: string;
+    manufacturer?: string;
 }
 
 export interface ViewerHandles {
     zoomIn: () => void;
     zoomOut: () => void;
+    brightnessUp: () => void;
+    brightnessDown: () => void;
+}
+
+export interface ViewerProps {
+    series: SeriesInfo | null;
+    onMetadataExtracted?: (md: Metadata) => void;
+    brightnessMode?: boolean;
 }
 
 const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
-    ({ series, onMetadataExtracted }, ref) => {
+    ({ series, onMetadataExtracted, brightnessMode = false  }, ref) => {
         const imageFilePaths = series?.imageFilePaths ?? [];
         const numberOfImages = series?.numberOfImages ?? 0;
 
-        // ──────── Hooks ────────
+        // ─────── frame loading state ───────
         const [idx, setIdx] = useState(0);
-        const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(
-            () => Array(imageFilePaths.length).fill(null)
+        const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(() =>
+            Array(imageFilePaths.length).fill(null)
         );
         const [loadedCount, setLoadedCount] = useState(0);
         const [isLooping, setIsLooping] = useState(false);
         const [fps, setFps] = useState(20);
 
-        // zoom & pan state
+        // ─────── zoom & pan state ───────
         const [zoomStep, setZoomStep] = useState(0);
         const [panFactor, setPanFactor] = useState<{ x: number; y: number }>({
             x: 0,
             y: 0,
         });
 
+        // ─────── brightness & contrast state ───────
+        const [brightness, setBrightness] = useState(50);
+        const [contrast, setContrast] = useState(50);
+
+        // ref to the viewport instance
         const viewportRef = useRef<FrameViewportRef>(null);
 
+        // expose control methods
         useImperativeHandle(
             ref,
             () => ({
                 zoomIn: () => setZoomStep((z) => Math.min(z + 1, 10)),
                 zoomOut: () => setZoomStep((z) => Math.max(z - 1, 0)),
+                brightnessUp: () => setBrightness((b) => Math.min(b + 10, 100)),
+                brightnessDown: () => setBrightness((b) => Math.max(b - 10, 0)),
             }),
             []
         );
 
+        // frame‐clamp helper
         const clamp = useCallback(
             (n: number) => Math.max(0, Math.min(n, numberOfImages - 1)),
             [numberOfImages]
         );
+
+        // navigation callbacks
         const onFrameChange = useCallback(
-            (rq: number) => {
-                const c = clamp(rq);
+            (requested: number) => {
+                const c = clamp(requested);
                 console.log(`[NewViewer] onFrameChange → ${c}`);
                 setIdx(c);
             },
@@ -181,11 +199,12 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             setFps(v);
         }, []);
 
+        // load initial frame
         const firstFrameUrl = imageFilePaths[0] ?? "";
         useEffect(() => {
             if (!firstFrameUrl) return;
             let cancelled = false;
-            console.log("[NewViewer] ⟳ series changed → resetting loader");
+            console.log("[NewViewer] ⟳ series changed → reset loader");
             setIdx(0);
             setFrames(Array(imageFilePaths.length).fill(null));
             setLoadedCount(0);
@@ -213,6 +232,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [firstFrameUrl]);
 
+        // load subsequent frames on demand
         useEffect(() => {
             if (!series || idx === 0 || frames[idx]) return;
             let cancelled = false;
@@ -237,18 +257,25 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [idx, frames[idx]]);
 
+        // pick which image to display
         const displayed = useMemo<HTMLImageElement | null>(() => {
             if (!series) return null;
             return frames[idx] ?? frames[0];
         }, [series, frames, idx]);
 
+        // render fallbacks
         if (!series) {
-            return <div className="dicom-viewer-container">Seleziona una serie…</div>;
+            return (
+                <div className="dicom-viewer-container">Seleziona una serie…</div>
+            );
         }
         if (!displayed) {
-            return <div className="dicom-viewer-container">Caricamento immagini…</div>;
+            return (
+                <div className="dicom-viewer-container">Caricamento immagini…</div>
+            );
         }
 
+        // final render
         return (
             <div
                 className="dicom-viewer-container"
@@ -261,8 +288,23 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
                         cursor={{ imageArea: "crosshair", viewportArea: "default" }}
                         zoomStep={zoomStep}
                         panFactor={panFactor}
+                        brightness={brightness}
+                        contrast={contrast}
                         onZoomStepChange={(z) => setZoomStep(z)}
                         onPanFactorChange={(p) => setPanFactor(p)}
+                        // only allow drag‐based brightness/contrast when in brightnessMode:
+                        // SOLO se brightnessMode è true il drag cambia brightness:
+                        onBrightnessChange={
+                            brightnessMode
+                            ? (b) => setBrightness(b)
+                            : undefined
+                        }
+                        // idem per contrasto se vuoi lo stesso comportamento:
+                        onContrastChange={
+                            brightnessMode
+                            ? (c) => setContrast(c)
+                            : undefined
+                        }
                     >
                         <Circle
                             cx={displayed.naturalWidth / 2}

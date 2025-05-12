@@ -7,6 +7,10 @@ interface ViewerToolbarProps {
   onToggleSidebar: () => void;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
+  onBrightnessUp?: () => void;
+  onBrightnessDown?: () => void;
+  brightnessMode: boolean;
+  onToggleBrightnessMode: () => void;
   // in futuro potresti aggiungere onRotate?, onPan?, ecc.
 }
 
@@ -15,6 +19,10 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   onToggleSidebar,
   onZoomIn,
   onZoomOut,
+  onBrightnessUp,
+  onBrightnessDown,
+  brightnessMode,
+  onToggleBrightnessMode,
 }) => {
   return (
     <div className="viewer-toolbar-container">
@@ -42,6 +50,36 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
           style={{ cursor: onZoomOut ? 'pointer' : 'default' }}
         >
           <img src="/assets/zoom-out-svgrepo-com.svg" alt="Zoom Out" />
+        </li>
+
+        {/* Brightness Mode Toggle */}
+        <li
+          className={`toolbar-item ${brightnessMode ? 'active' : ''}`}
+          title={brightnessMode ? 'Disable Brightness Mode' : 'Enable Brightness Mode'}
+          onClick={onToggleBrightnessMode}
+          style={{ cursor: 'pointer' }}
+        >
+          <img src="/assets/brightness-up.svg" alt="Brightness Mode" />
+        </li>
+
+        {/* Brightness Up */}
+        <li
+          className="toolbar-item"
+          title="Brightness Up"
+          onClick={onBrightnessUp}
+          style={{ cursor: onBrightnessUp ? 'pointer' : 'default' }}
+        >
+          <img src="/assets/brightness-up.svg" alt="Brightness Up" />
+        </li>
+
+        {/* Brightness Down */}
+        <li
+          className="toolbar-item"
+          title="Brightness Down"
+          onClick={onBrightnessDown}
+          style={{ cursor: onBrightnessDown ? 'pointer' : 'default' }}
+        >
+          <img src="/assets/brightness-down.svg" alt="Brightness Down" />
         </li>
 
         {/* Rotate button */}

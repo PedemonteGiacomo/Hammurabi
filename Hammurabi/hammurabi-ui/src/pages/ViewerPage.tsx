@@ -17,7 +17,10 @@ const ViewerPage: React.FC = () => {
   const [metadata, setMetadata] = useState<any | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
 
-  // ref per controllare zoom via viewer
+  // NEW: brightness‐mode toggle
+  const [brightnessMode, setBrightnessMode] = useState(false);
+
+  // ref per controllare zoom/brightness via NewViewer
   const viewerRef = useRef<ViewerHandles>(null);
 
   // Se non c'è nessuna serie selezionata, torniamo alla lista
@@ -27,14 +30,13 @@ const ViewerPage: React.FC = () => {
     }
   }, [selectedSeries, navigate]);
 
-  const toggleSidebar = () => {
-    setShowSidebar((prev) => !prev);
-  };
+  const toggleSidebar = () => setShowSidebar(v => !v);
+  const toggleBrightnessMode = () => setBrightnessMode(v => !v);
 
   // fallback per i dati info
-  const patientId = metadata?.patientId ?? '—';
-  const studyDesc = metadata?.studyDescription ?? '—';
-  const seriesDesc = metadata?.seriesDescription ?? '—';
+  const patientId      = metadata?.patientId        ?? '—';
+  const studyDesc      = metadata?.studyDescription ?? '—';
+  const seriesDesc     = metadata?.seriesDescription ?? '—';
   const instanceNumber = '—';
 
   return (
@@ -62,13 +64,16 @@ const ViewerPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Toolbar con eventi zoom */}
+      {/* Toolbar con zoom & luminosità */}
       <ViewerToolbar
         showSidebar={showSidebar}
         onToggleSidebar={toggleSidebar}
         onZoomIn={() => viewerRef.current?.zoomIn()}
         onZoomOut={() => viewerRef.current?.zoomOut()}
-      // in futuro: onRotate, onPan, ecc.
+        onBrightnessUp={() => viewerRef.current?.brightnessUp()}
+        onBrightnessDown={() => viewerRef.current?.brightnessDown()}
+        brightnessMode={brightnessMode}
+        onToggleBrightnessMode={toggleBrightnessMode}
       />
 
       {/* Main viewer row */}
@@ -79,6 +84,7 @@ const ViewerPage: React.FC = () => {
               ref={viewerRef}
               series={selectedSeries}
               onMetadataExtracted={setMetadata}
+              brightnessMode={brightnessMode}
             />
           )}
         </div>

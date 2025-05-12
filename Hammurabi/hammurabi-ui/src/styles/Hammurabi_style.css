@@ -160,6 +160,7 @@ body {
   padding: 0.5rem 1rem;
 }
 
+
 .toolbar-list {
   list-style: none;
   display: flex;
@@ -376,4 +377,15 @@ body {
   font-size:.75rem;
   color:#bbb;
   margin-right:1rem;
+}
+
+/* Evidenzia il brightness-mode quando è attivo */
+.viewer-toolbar-container .toolbar-item.active img {
+  filter: brightness(200%) invert(100%);
+}
+
+/* oppure semplicemente un bordo */
+.viewer-toolbar-container .toolbar-item.active {
+  outline: 2px solid white;
+  border-radius: 4px;
 }
