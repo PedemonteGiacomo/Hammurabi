@@ -22,9 +22,7 @@ const root = ReactDOM.createRoot(rootElement);
 console.log('Cognito Auth Config:', cognitoAuthConfig);
 
 root.render(
-  <React.StrictMode>
     <AuthProvider {...cognitoAuthConfig}>
       <App />
     </AuthProvider>
-  </React.StrictMode>
 );

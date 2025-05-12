@@ -1,15 +1,4 @@
-// src/components/NewViewer.tsx
-// -----------------------------------------------------------------------------
-// Replacement for the old Cornerstone-based <Viewer>. It uses the Viewport kit
-// that lives in **src/newViewport/** (FrameViewport, Navigation, etc.).
-// The component keeps the public API identical to the old one so that
-// <ViewerPage> and the rest of the UI do **not** need to change → you can just
-// rename the import.
-//
-// ⚠️ This implementation focuses on single-frame MONOCHROME2 images (8- or 16-
-//     bit). If you also need RGB or palette-color support just extend the helper
-//     `imageFromPixelData`.
-// -----------------------------------------------------------------------------
+// src/components/newViewer.tsx
 
 import React, {
     useState,
@@ -43,18 +32,18 @@ async function imageFromPixelData(
     const imageData = ctx.createImageData(width, height);
     const out = imageData.data;
     const maxSampleValue = bitsAllocated === 16 ? 65535 : 255;
-
     for (let i = 0; i < pixelData.length; i++) {
-        const v = bitsAllocated === 16
-            ? (pixelData as Uint16Array)[i]
-            : (pixelData as Uint8Array)[i];
+        const v =
+            bitsAllocated === 16
+                ? (pixelData as Uint16Array)[i]
+                : (pixelData as Uint8Array)[i];
         const v8 = (v / maxSampleValue) * 255;
         const o = i * 4;
         out[o] = out[o + 1] = out[o + 2] = v8;
         out[o + 3] = 255;
     }
-
     ctx.putImageData(imageData, 0, 0);
+
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => resolve(img);
@@ -63,19 +52,28 @@ async function imageFromPixelData(
 }
 
 async function loadDicomImage(filePath: string) {
-    const res = await fetch(filePath);
+    console.log(`[NewViewer] fetch ${filePath}`);
+    const encodedPath = filePath
+        .split("/")
+        .map((segment) => encodeURIComponent(segment))
+        .join("/");
+    const url = `${window.location.origin}${encodedPath}`;
+    console.log(`[NewViewer] fetching DICOM at ${url}`);
+    const res = await fetch(url);
+    if (!res.ok) {
+        throw new Error(`Failed to fetch ${url}, status ${res.status}`);
+    }
     const buffer = await res.arrayBuffer();
     const dataSet = dicomParser.parseDicom(new Uint8Array(buffer));
 
     const cols = dataSet.uint16("x00280011");
     const rows = dataSet.uint16("x00280010");
-    if (cols == null || rows == null) throw new Error("Missing dimensions");
-
     const bitsAllocated = dataSet.uint16("x00280100");
-    if (bitsAllocated == null) throw new Error("Missing bitsAllocated");
-
     const pde = dataSet.elements.x7fe00010;
-    if (!pde) throw new Error("Missing PixelData");
+    if (cols == null || rows == null || bitsAllocated == null || !pde) {
+        throw new Error("Missing DICOM image data");
+    }
+
     const offset = pde.dataOffset;
     const frameLen = rows * cols * (bitsAllocated / 8);
     const byteArray = dataSet.byteArray.buffer;
@@ -84,7 +82,6 @@ async function loadDicomImage(filePath: string) {
             ? new Uint16Array(byteArray, offset, frameLen / 2)
             : new Uint8Array(byteArray, offset, frameLen);
 
-    // metadata (only used once on frame 0)
     const metadata = {
         patientId: dataSet.string("x00100020") || "Unknown",
         patientName: dataSet.string("x00100010") || "Unknown",
@@ -95,8 +92,8 @@ async function loadDicomImage(filePath: string) {
         manufacturer: dataSet.string("x00080070") || "Unknown",
     } as const;
 
-    const img = await imageFromPixelData(cols, rows, pixelData, bitsAllocated);
-    return { image: img, metadata } as const;
+    const image = await imageFromPixelData(cols, rows, pixelData, bitsAllocated);
+    return { image, metadata } as const;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -120,117 +117,127 @@ const NewViewer: React.FC<ViewerProps> = ({
     series,
     onMetadataExtracted,
 }) => {
-    // if no series, early-return
-    if (!series) {
-        return (
-            <div className="dicom-viewer-container">
-                Seleziona una serie…
-            </div>
-        );
-    }
+    // extract just what we need
+    const imageFilePaths = series?.imageFilePaths ?? [];
+    const numberOfImages = series?.numberOfImages ?? 0;
 
-    // now `series` is non-null
-    const { imageFilePaths, numberOfImages } = series;
-
+    // All hooks up front, unconditionally:
     const [idx, setIdx] = useState(0);
-    const [frames, setFrames] = useState<HTMLImageElement[]>([]);
-    const [available, setAvailable] = useState(0);
+    const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(() =>
+        Array(imageFilePaths.length).fill(null)
+    );
+    const [loadedCount, setLoadedCount] = useState(0);
     const [isLooping, setIsLooping] = useState(false);
     const [fps, setFps] = useState(20);
 
-    // clamp helper
     const clamp = useCallback(
-        (n: number) => Math.max(0, Math.min(n, available - 1)),
-        [available]
+        (n: number) => Math.max(0, Math.min(n, numberOfImages - 1)),
+        [numberOfImages]
     );
-
-    // navigation handlers with console logging
     const onFrameChange = useCallback(
-        (n: number) => {
-            console.log("→ request frame:", n);
-            const c = clamp(n);
-            console.log("→ clamped to:", c);
+        (requested: number) => {
+            const c = clamp(requested);
+            console.log(`[NewViewer] onFrameChange → ${c}`);
             setIdx(c);
         },
         [clamp]
     );
     const onLoopChange = useCallback((l: boolean) => {
-        console.log("→ loop:", l);
+        console.log(`[NewViewer] onLoopChange → ${l}`);
         setIsLooping(l);
     }, []);
     const onFpsChange = useCallback((v: number) => {
-        console.log("→ fps:", v);
+        console.log(`[NewViewer] onFpsChange → ${v}`);
         setFps(v);
     }, []);
 
-    // load all frames progressively
+    // memoize the very first frame's URL so we only reset when *that* changes:
+    const firstFrameUrl = imageFilePaths[0] || "";
+
     useEffect(() => {
+        if (!firstFrameUrl) return;
+
         let cancelled = false;
-        setFrames([]);
-        setAvailable(0);
+        console.log("[NewViewer] ⟳ series changed → resetting loader");
         setIdx(0);
+        setFrames(Array(imageFilePaths.length).fill(null));
+        setLoadedCount(0);
 
         (async () => {
-            const temp: HTMLImageElement[] = [];
-            for (let i = 0; i < imageFilePaths.length; i++) {
-                try {
-                    const { image, metadata } = await loadDicomImage(
-                        imageFilePaths[i]
-                    );
-                    if (cancelled) return;
-                    temp[i] = image;
-                    setFrames((prev) => {
-                        const nxt = [...prev];
-                        nxt[i] = image;
-                        return nxt;
-                    });
-                    setAvailable(i + 1);
-                    if (i === 0) {
-                        onMetadataExtracted?.(metadata);
-                    }
-                } catch (err) {
-                    console.error("Failed to load", imageFilePaths[i], err);
-                }
+            try {
+                console.log("[NewViewer] ⟳ loading initial frame");
+                const { image, metadata } = await loadDicomImage(firstFrameUrl);
+                if (cancelled) return;
+                setFrames((prev) => {
+                    const nxt = [...prev];
+                    nxt[0] = image;
+                    return nxt;
+                });
+                setLoadedCount(1);
+                onMetadataExtracted?.(metadata);
+            } catch (err) {
+                console.error("[NewViewer] failed to load initial frame", err);
             }
         })();
 
         return () => {
             cancelled = true;
         };
-    }, [imageFilePaths, onMetadataExtracted]);
+        // we only care about re-running this when firstFrameUrl really changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [firstFrameUrl]);
 
-    // pick the exact frame if ready, otherwise last-available
+    useEffect(() => {
+        // don't run if we haven't got a series or already have frame 0 or this frame
+        if (!series || idx === 0 || frames[idx]) return;
+
+        let cancelled = false;
+        console.log(`[NewViewer] ⟳ loading frame ${idx}`);
+        (async () => {
+            try {
+                const { image } = await loadDicomImage(imageFilePaths[idx]);
+                if (cancelled) return;
+                setFrames((prev) => {
+                    const nxt = [...prev];
+                    nxt[idx] = image;
+                    return nxt;
+                });
+                setLoadedCount((c) => c + 1);
+            } catch (err) {
+                console.error(`[NewViewer] failed to load frame ${idx}`, err);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+        // we only need to re-run when `idx` or that slot in `frames` changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [idx, frames[idx]]);
+
     const displayed = useMemo(() => {
-        if (frames[idx]) return frames[idx];
-        if (available > 0) return frames[available - 1];
-        return null;
-    }, [frames, idx, available]);
+        if (!series) return null;
+        return frames[idx] ?? frames[0];
+    }, [series, frames, idx]);
 
+    // ──────── RENDER ────────
+
+    if (!series) {
+        return <div className="dicom-viewer-container">Seleziona una serie…</div>;
+    }
     if (!displayed) {
-        return (
-            <div className="dicom-viewer-container">
-                Caricamento immagini…
-            </div>
-        );
+        return <div className="dicom-viewer-container">Caricamento immagini…</div>;
     }
 
     return (
         <div
             className="dicom-viewer-container"
-            style={{
-                display: "flex",
-                flexDirection: "column",
-                height: "100%",
-            }}
+            style={{ display: "flex", flexDirection: "column", height: "100%" }}
         >
-            {/* viewport */}
             <div style={{ flex: 1, position: "relative" }}>
                 <FrameViewport
                     frame={displayed}
-                    cursor={{
-                        imageArea: "crosshair",
-                        viewportArea: "default",
-                    }}
+                    cursor={{ imageArea: "crosshair", viewportArea: "default" }}
                     zoomStep={0}
                     panFactor={{ x: 0, y: 0 }}
                     onZoomStepChange={() => { }}
@@ -244,11 +251,10 @@ const NewViewer: React.FC<ViewerProps> = ({
                 </FrameViewport>
             </div>
 
-            {/* navigation */}
             <Navigation
                 frameIndex={idx}
                 numberOfFrames={numberOfImages}
-                numberOfAvailableFrames={available}
+                numberOfAvailableFrames={loadedCount}
                 isLooping={isLooping}
                 frameRate={fps}
                 hasArrowButtons
