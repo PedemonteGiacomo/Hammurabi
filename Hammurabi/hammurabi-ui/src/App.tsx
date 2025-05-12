@@ -1,16 +1,16 @@
 // src/App.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
-import { useDispatch } from 'react-redux';
-import { setUserProfile } from './zustand/store/userSlice';
+// Remove: import { useDispatch } from 'react-redux';
+// Remove: import { setUserProfile } from './zustand/store/userSlice';
 import SelectionPage from './pages/SelectionPage';
 import ViewerPage from './pages/ViewerPage';
 import AwsSignOut from './pages/AWSsignout';
 
 function App() {
   const auth = useAuth();
-  const dispatch = useDispatch();
+  const [userProfile, setUserProfile] = useState<any>(null); // local state if we need user data
 
   useEffect(() => {
     if (!auth.isLoading && !auth.isAuthenticated) {
@@ -18,12 +18,12 @@ function App() {
     }
   }, [auth]);
 
-  // When the user information is available, set it in the Redux store.
+  // When the user information is available, store it in local state
   useEffect(() => {
     if (auth.user) {
-      dispatch(setUserProfile(auth.user.profile));
+      setUserProfile(auth.user.profile);
     }
-  }, [auth.user, dispatch]);
+  }, [auth.user]);
 
   if (auth.isLoading) {
     return (

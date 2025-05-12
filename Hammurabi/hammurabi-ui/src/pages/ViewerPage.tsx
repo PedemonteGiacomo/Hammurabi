@@ -4,16 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import TopBar from '../components/TopBar';
 import ViewerToolbar from '../components/ViewerToolbar';
-import Viewer from '../components/Viewer';
+import Viewer from '../components/newViewer';
 import Sidebar from '../components/Sidebar';
-import { RootState } from '../zustand/store/store';
-import { setMetadata } from '../zustand/store/viewerSlice';
+// import { RootState } from '../zustand/store/store';
+// import { setMetadata } from '../zustand/store/viewerSlice';
 
 const ViewerPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const selectedSeries = useSelector((state: RootState) => state.viewer.selectedSeries);
-  const metadata = useSelector((state: RootState) => state.viewer.metadata);
+  const [selectedSeries, setSelectedSeries] = useState<any | null>(null);
+  const [metadata, setMetadata] = useState<any | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
 
   // If no series is selected, go back to the study list.
@@ -69,7 +69,10 @@ const ViewerPage: React.FC = () => {
       >
         <div className={showSidebar ? "viewer-container with-sidebar" : "viewer-container full-width"}>
           {selectedSeries && (
-            <Viewer series={selectedSeries} onMetadataExtracted={(extracted) => dispatch(setMetadata(extracted))} />
+            <Viewer 
+              series={selectedSeries}         
+              onMetadataExtracted={(extracted) => setMetadata(extracted)}
+            />
           )}
         </div>
         {showSidebar && (

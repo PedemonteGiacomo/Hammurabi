@@ -1,18 +1,18 @@
-// src/pages/SelectionPage.tsx
-import React from 'react';
+// ...existing code...
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { setSelectedSeries } from '../zustand/store/viewerSlice';
+// Remove: import { useDispatch } from 'react-redux';
+// Remove: import { setSelectedSeries } from '../zustand/store/viewerSlice';
 import TopBar from '../components/TopBar';
 import NestedDicomTable, { SeriesInfo } from '../components/NestedDicomTable';
 
 const SelectionPage: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const [selectedSeries, setSelectedSeries] = useState<SeriesInfo | null>(null);
 
-  // When a series is selected, store it globally and navigate to the viewer page.
+  // When a series is selected, store it in local state and navigate to the viewer page.
   const handleSelectSeries = (series: SeriesInfo) => {
-    dispatch(setSelectedSeries(series));
+    setSelectedSeries(series);
     navigate('/viewer');
   };
 
@@ -30,3 +30,4 @@ const SelectionPage: React.FC = () => {
 };
 
 export default SelectionPage;
+// ...existing code...
