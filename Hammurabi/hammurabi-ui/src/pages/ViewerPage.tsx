@@ -1,43 +1,48 @@
 // src/pages/ViewerPage.tsx
-import React, { useEffect, useState } from 'react';
+
+import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import ViewerToolbar from '../components/ViewerToolbar';
-import Viewer from '../components/newViewer';
+import NewViewer, { ViewerHandles } from '../components/newViewer';
 import Sidebar from '../components/Sidebar';
-// import { RootState } from '../zustand/store/store';
-// import { setMetadata } from '../zustand/store/viewerSlice';
+import { SeriesInfo } from '../components/NestedDicomTable';
 
 const ViewerPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   // serie passata da SelectionPage (potrebbe essere undefined)
-  const selectedSeries = (location.state as { series?: any })?.series ?? null;
+  const selectedSeries = (location.state as { series?: SeriesInfo })?.series ?? null;
+
   const [metadata, setMetadata] = useState<any | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
 
-  // If no series is selected, go back to the study list.
+  // ref per controllare zoom via viewer
+  const viewerRef = useRef<ViewerHandles>(null);
+
+  // Se non c'è nessuna serie selezionata, torniamo alla lista
   useEffect(() => {
-    if (!selectedSeries) navigate('/');
+    if (!selectedSeries) {
+      navigate('/');
+    }
   }, [selectedSeries, navigate]);
 
-  // Toggle the sidebar's visibility.
   const toggleSidebar = () => {
-    setShowSidebar(prev => !prev);
+    setShowSidebar((prev) => !prev);
   };
 
-  // Example fallback details if metadata is not extracted yet.
-  const patientId = metadata?.patientId ?? '123';
-  const studyDesc = metadata?.studyDescription ?? 'CT';
-  const seriesDesc = metadata?.seriesDescription ?? '507';
-  const instanceNumber = '41';
+  // fallback per i dati info
+  const patientId = metadata?.patientId ?? '—';
+  const studyDesc = metadata?.studyDescription ?? '—';
+  const seriesDesc = metadata?.seriesDescription ?? '—';
+  const instanceNumber = '—';
 
   return (
     <div className="viewer-page-container">
       {/* Top bar */}
       <TopBar />
 
-      {/* Info row displaying patient/study/series/instance details */}
+      {/* Info row */}
       <div className="viewer-info-row">
         <div className="viewer-info-block">
           <span className="info-label">Patient ID</span>
@@ -57,24 +62,27 @@ const ViewerPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Toolbar with clickable icons including the info icon */}
-      <ViewerToolbar onToggleSidebar={toggleSidebar} showSidebar={showSidebar} />
+      {/* Toolbar con eventi zoom */}
+      <ViewerToolbar
+        showSidebar={showSidebar}
+        onToggleSidebar={toggleSidebar}
+        onZoomIn={() => viewerRef.current?.zoomIn()}
+        onZoomOut={() => viewerRef.current?.zoomOut()}
+      // in futuro: onRotate, onPan, ecc.
+      />
 
       {/* Main viewer row */}
-      <div
-        className="viewer-main-row"
-        style={{ flex: 1, maxHeight: 'none', overflow: 'visible' }}
-      >
+      <div className="viewer-main-row">
         <div className={showSidebar ? "viewer-container with-sidebar" : "viewer-container full-width"}>
           {selectedSeries && (
-            <Viewer 
-              series={selectedSeries}         
-              onMetadataExtracted={(extracted) => setMetadata(extracted)}
+            <NewViewer
+              ref={viewerRef}
+              series={selectedSeries}
+              onMetadataExtracted={setMetadata}
             />
           )}
         </div>
         {showSidebar && (
-          // Sidebar displays DICOM metadata.
           <div className="sidebar-container">
             <Sidebar metadata={metadata} />
           </div>
