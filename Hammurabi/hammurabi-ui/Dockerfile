@@ -11,6 +11,8 @@ WORKDIR /app
     
     # Solo i package* per sfruttare la cache layer
 COPY package*.json ./
+RUN npm install -g npm@10           
+RUN npm pkg set overrides.@types/node="^20"   
 RUN npm ci
     
     # Copia il resto del codice
