@@ -52,6 +52,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background-color: #000;    /* pure black */
 }
 
 .study-list-wrapper {
@@ -80,6 +81,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   background-color: #1c1c1c;
+  color: #fff;
 }
 
 .study-list-table thead tr {
@@ -99,6 +101,13 @@ body {
 
 .study-list-table tbody tr:hover {
   background-color: #2f2f2f;
+}
+
+/* and since you sometimes have inline text/buttons/buttons that might get
+   link or button defaults, you can also do: */
+.study-list-table a,
+.study-list-table button {
+  color: inherit;
 }
 
 /* Optional search panel (InputsPanel) */
@@ -123,6 +132,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background-color: #000;    /* pure black */
 }
 
 /* Info row for Patient/Study/Series/Instance */
@@ -186,6 +196,7 @@ body {
   flex: 1;
   padding: 1rem;
   gap: 1rem;
+  color: black;
 }
 
 /* This modifier limits the height to prevent stretching */
@@ -266,7 +277,7 @@ body {
 
 /* DICOM metadata panel within the sidebar */
 .dicom-metadata-panel {
-  background-color: #333;
+  background-color: #fbd9dc;
   padding: 1rem;
   border-radius: 4px;
 }
@@ -388,4 +399,17 @@ body {
 .viewer-toolbar-container .toolbar-item.active {
   outline: 2px solid white;
   border-radius: 4px;
+}
+
+/* Colore del testo degli input numerici nella barra di navigazione */
+.viewer-navigation input[type="number"] {
+  color: #000 !important;          /* testo nero */
+  background-color: #fff !important; /* sfondo bianco, così si legge meglio */
+}
+
+/* Se hai altri input nel ViewerToolbar (o altrove) senza classe specifica: */
+.viewer-toolbar-container input,
+.viewer-main-row input {
+  color: #000 !important;
+  background-color: #fff !important;
 }
