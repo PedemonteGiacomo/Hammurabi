@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "desktop": {
+      "showLogo": true,
+      "showVersion": true,
+      "userMenuStyle": "full"
+    },
+    "tablet": {
+      "showLogo": true,
+      "showVersion": false,
+      "userMenuStyle": "icon-only"
+    },
+    "mobile": {
+      "showLogo": false,
+      "showVersion": false,
+      "userMenuStyle": "dropdown"
+    }
+  }
+}

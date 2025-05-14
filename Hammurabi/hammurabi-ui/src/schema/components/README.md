@@ -1,0 +1,1 @@
+We can add schemas for DicomMetadataPanel, InputsPanel, etc. exactly the same way.

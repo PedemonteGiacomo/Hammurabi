@@ -1,0 +1,20 @@
+{
+  "pages": {
+    "selection": {
+      "path": "/",
+      "regions": {
+        "header":   { "component": "TopBar" },
+        "main":     { "component": "StudyList" }
+      }
+    },
+    "viewer": {
+      "path": "/viewer",
+      "regions": {
+        "header":    { "component": "TopBar" },
+        "toolbar":   { "component": "ViewerToolbar" },
+        "main":      { "component": "NewViewer" },
+        "sidebar":   { "component": "Sidebar" }
+      }
+    }
+  }
+}

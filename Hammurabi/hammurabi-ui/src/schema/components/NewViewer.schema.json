@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "desktop": {
+      "showControls": ["slider","fpsInput","loopButton"],
+      "overlayCircles":  true
+    },
+    "tablet": {
+      "showControls": ["slider","loopButton"],
+      "overlayCircles": false
+    },
+    "mobile": {
+      "showControls": ["slider"],
+      "overlayCircles": false
+    }
+  }
+}

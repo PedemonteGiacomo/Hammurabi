@@ -1,0 +1,31 @@
+{
+  "variants": {
+    "desktop": {
+      "buttons": [
+        { "id":"zoomIn",  "icon":"/assets/zoom-in.svg",  "title":"Zoom In" },
+        { "id":"zoomOut", "icon":"/assets/zoom-out.svg", "title":"Zoom Out" },
+        { "id":"brightnessMode","icon":"/assets/brightness-mode.svg","title":"Toggle Brightness" },
+        { "id":"brightnessUp","icon":"/assets/brightness-up.svg","title":"Brighter" },
+        { "id":"brightnessDown","icon":"/assets/brightness-down.svg","title":"Darker" },
+        { "id":"toggleSidebar","icon":"/assets/info.svg","title":"Metadata" }
+      ],
+      "layout":"horizontal"
+    },
+    "tablet": {
+      "buttons": [
+        { "id":"zoomIn",  "icon":"/assets/zoom-in.svg",  "title":"+" },
+        { "id":"zoomOut", "icon":"/assets/zoom-out.svg", "title":"–" },
+        { "id":"toggleSidebar","icon":"/assets/info.svg","title":"Info" }
+      ],
+      "layout":"compact"
+    },
+    "mobile": {
+      "buttons": [
+        { "id":"toggleSidebar","icon":"/assets/info.svg","title":"i" },
+        { "id":"zoomIn",  "icon":"/assets/zoom-in.svg","title":"+" },
+        { "id":"zoomOut", "icon":"/assets/zoom-out.svg","title":"–" }
+      ],
+      "layout":"stacked"
+    }
+  }
+}

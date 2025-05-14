@@ -60,3 +60,16 @@ In the `hammurabi-ui` folder run this command to build the image:
 
     docker build -t hammurabi-ui-prod .
 
+# Nuove dipendenze nuova versione
+
+    npm install \
+        @chakra-ui/react@^2.8.1 \
+        @chakra-ui/theme-tools@^2.0.0 \
+        @emotion/react \
+        @emotion/styled \
+        framer-motion \
+        react-responsive \
+        react-device-detect \
+        react-icons \
+        ajv@6.12.6 -D \
+        --legacy-peer-deps

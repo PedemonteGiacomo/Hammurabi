@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "desktop": { "width": 300, "collapsible": true },
+    "tablet":  { "width": 250, "collapsible": true },
+    "mobile":  { "width": "100%", "collapsible": false }
+  }
+}

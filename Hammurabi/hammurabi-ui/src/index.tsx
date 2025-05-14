@@ -1,28 +1,31 @@
 // src/index.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ChakraProvider } from '@chakra-ui/react';
 import { AuthProvider } from 'react-oidc-context';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Hammurabi_style.css';
 import App from './App';
 
-// Read Cognito settings from environment variables.
+// 👇 import your custom theme
+import { theme } from './theme';
+
 const cognitoAuthConfig = {
-  authority:   window._env_.REACT_APP_COGNITO_AUTHORITY   || '',
-  client_id:   window._env_.REACT_APP_COGNITO_CLIENT_ID   || '',
-  redirect_uri:window._env_.REACT_APP_COGNITO_REDIRECT_URI|| '',
-  response_type:'code',
-  scope:       window._env_.REACT_APP_COGNITO_SCOPE       || '',
+  authority: window._env_.REACT_APP_COGNITO_AUTHORITY || '',
+  client_id: window._env_.REACT_APP_COGNITO_CLIENT_ID || '',
+  redirect_uri: window._env_.REACT_APP_COGNITO_REDIRECT_URI || '',
+  response_type: 'code',
+  scope: window._env_.REACT_APP_COGNITO_SCOPE || '',
 };
 
-const rootElement = document.getElementById('root') as HTMLElement;
-const root = ReactDOM.createRoot(rootElement);
-
-// display in console the cognitoAuthConfig
-console.log('Cognito Auth Config:', cognitoAuthConfig);
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
 
 root.render(
-    <AuthProvider {...cognitoAuthConfig}>
+  <AuthProvider {...cognitoAuthConfig}>
+    <ChakraProvider >
       <App />
-    </AuthProvider>
+    </ChakraProvider>
+  </AuthProvider>
 );

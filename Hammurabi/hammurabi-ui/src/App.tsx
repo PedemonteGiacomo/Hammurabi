@@ -4,8 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 // Remove: import { useDispatch } from 'react-redux';
 // Remove: import { setUserProfile } from './zustand/store/userSlice';
-import SelectionPage from './pages/SelectionPage';
-import ViewerPage from './pages/ViewerPage';
+import { SchemaRenderer } from "./components/SchemaRenderer";
 import AwsSignOut from './pages/AWSsignout';
 
 function App() {
@@ -45,8 +44,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<SelectionPage />} />
-        <Route path="/viewer" element={<ViewerPage />} />
+        <Route path="/*" element={<SchemaRenderer />} />
         <Route path="/aws-signout" element={<AwsSignOut />} />
       </Routes>
     </Router>
