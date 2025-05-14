@@ -8,7 +8,6 @@
         { "id":"brightnessMode","icon":"/assets/brightness-mode.svg", "title":"Toggle Brightness" },
         { "id":"brightnessUp","icon":"/assets/brightness-up.svg", "title":"Brighter" },
         { "id":"brightnessDown","icon":"/assets/brightness-down.svg", "title":"Darker" },
-        { "id":"rotate","icon":"/assets/rotate-svgrepo-com.svg", "title":"Rotate" },
         { "id":"measurements","icon":"/assets/measure-svgrepo-com.svg", "title":"Measurements" },
         { "id":"flipHorizontal","icon":"/assets/flip-horizontal-svgrepo-com.svg", "title":"Flip Horizontal" },
         { "id":"flipVertical","icon":"/assets/flip-vertical-svgrepo-com.svg", "title":"Flip Vertical" },
@@ -27,6 +26,9 @@
         { "id":"zoomOut", "icon":"/assets/zoom-out-svgrepo-com.svg", "title":"–" },
         { "id":"brightnessUp","icon":"/assets/brightness-up.svg", "title":"Brighter" },
         { "id":"brightnessDown","icon":"/assets/brightness-down.svg", "title":"Darker" },
+        { "id":"pan","icon":"/assets/pan-svgrepo-com.svg", "title":"Pan" },
+        { "id":"fullscreen", "icon":"/assets/fullscreen-svgrepo-com.svg", "title":"Fullscreen" },
+        { "id":"Reset","icon":"/assets/reset-view-svgrepo-com.svg", "title":"Reset" },
         { "id":"toggleSidebar","icon":"/assets/info-svgrepo-com.svg","title":"Info" }
       ],
       "layout":"compact"
@@ -34,8 +36,10 @@
     "mobile": {
       "buttons": [
         { "id":"logo", "icon":"/assets/esaote_e.svg", "title":"Esaote" },
+        { "id":"brightnessMode","icon":"/assets/brightness-mode.svg", "title":"Toggle Brightness" },
         { "id":"zoomIn",  "icon":"/assets/zoom-in-svgrepo-com.svg","title":"+" },
         { "id":"zoomOut", "icon":"/assets/zoom-out-svgrepo-com.svg","title":"–" },
+        { "id":"Reset","icon":"/assets/reset-view-svgrepo-com.svg", "title":"Reset" },
         { "id":"toggleSidebar","icon":"/assets/info-svgrepo-com.svg","title":"i" }
       ],
       "layout":"stacked"
