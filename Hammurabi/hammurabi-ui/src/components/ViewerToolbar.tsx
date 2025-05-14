@@ -1,17 +1,23 @@
 // src/components/ViewerToolbar.tsx
-
 import React from "react";
 import { useComponentVariant } from "../hooks/useComponentVariant";
 
 interface ViewerToolbarProps {
+  /* state & toggles */
   showSidebar: boolean;
+  brightnessMode: boolean;
   onToggleSidebar: () => void;
+  onToggleBrightnessMode: () => void;
+
+  /* viewport actions */
   onZoomIn?: () => void;
   onZoomOut?: () => void;
   onBrightnessUp?: () => void;
   onBrightnessDown?: () => void;
-  brightnessMode: boolean;
-  onToggleBrightnessMode: () => void;
+  onFlipHorizontal?: () => void;
+  onFlipVertical?: () => void;
+  onResetView?: () => void;
+  onFullscreen?: () => void;
 }
 
 type ButtonCfg = { id: string; icon: string; title: string };
@@ -23,30 +29,37 @@ type Variant = {
 
 const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   showSidebar,
+  brightnessMode,
   onToggleSidebar,
+  onToggleBrightnessMode,
   onZoomIn,
   onZoomOut,
   onBrightnessUp,
   onBrightnessDown,
-  brightnessMode,
-  onToggleBrightnessMode,
+  onFlipHorizontal,
+  onFlipVertical,
+  onResetView,
+  onFullscreen,
 }) => {
   /* schema‑driven variant */
   const { buttons = [], layout } = useComponentVariant<Variant>(
     "ViewerToolbar",
   );
 
-  /* id -> handler mapping  */
   const handlers: Record<string, (() => void) | undefined> = {
     zoomIn: onZoomIn,
     zoomOut: onZoomOut,
     brightnessMode: onToggleBrightnessMode,
     brightnessUp: onBrightnessUp,
     brightnessDown: onBrightnessDown,
+    flipHorizontal: onFlipHorizontal,
+    flipVertical: onFlipVertical,
+    fullscreen: onFullscreen,
+    Reset: onResetView,
     toggleSidebar: onToggleSidebar,
+    // i comandi non (ancora) implementati restano undefined
   };
 
-  /* Build button list.  If schema absent fallback to a default minimal set */
   const btns: ButtonCfg[] =
     buttons.length > 0
       ? buttons
@@ -56,21 +69,25 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
           { id: "toggleSidebar", title: "Metadata", icon: "/assets/info-svgrepo-com.svg" },
         ];
 
+  const isActive = (id: string): boolean =>
+    (id === "brightnessMode" && brightnessMode) ||
+    (id === "toggleSidebar" && showSidebar);
+
   return (
     <div className={`viewer-toolbar-container layout-${layout || "horizontal"}`}>
       <ul className="toolbar-list">
         {btns.map((b) => {
           const click = handlers[b.id];
-          const isActive =
-            (b.id === "brightnessMode" && brightnessMode) ||
-            (b.id === "toggleSidebar" && showSidebar);
           return (
             <li
               key={b.id}
-              className={`toolbar-item ${isActive ? "active" : ""}`}
+              className={`toolbar-item ${isActive(b.id) ? "active" : ""}`}
               title={b.title}
               onClick={click}
-              style={{ cursor: click ? "pointer" : "default" }}
+              style={{
+                cursor: click ? "pointer" : "default",
+                opacity: click ? 1 : 0.4,
+              }}
             >
               <img src={b.icon} alt={b.id} />
             </li>

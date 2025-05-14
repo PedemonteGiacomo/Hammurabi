@@ -1,5 +1,4 @@
 // src/components/newViewer.tsx
-
 import React, {
   useState,
   useEffect,
@@ -60,13 +59,11 @@ async function imageFromPixelData(
 }
 
 async function loadDicomImage(filePath: string) {
-  console.log(`[NewViewer] fetch ${filePath}`);
   const encodedPath = filePath
     .split("/")
     .map((seg) => encodeURIComponent(seg))
     .join("/");
   const url = `${window.location.origin}${encodedPath}`;
-  console.log(`[NewViewer] fetching DICOM at ${url}`);
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to fetch ${url}, status ${res.status}`);
@@ -123,6 +120,9 @@ export interface ViewerHandles {
   zoomOut: () => void;
   brightnessUp: () => void;
   brightnessDown: () => void;
+  flipHorizontal: () => void;
+  flipVertical: () => void;
+  resetView: () => void;
 }
 
 export interface ViewerProps {
@@ -139,8 +139,6 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-      /* Listener globale ‑ passive:false ‑ che annulla lo scroll
-         **solo** se il target è dentro il viewer                          */
       const stopScroll = (e: WheelEvent) => {
         const el = containerRef.current;
         if (el && el.contains(e.target as Node)) {
@@ -159,8 +157,8 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       overlayCircles: boolean;
     }>("NewViewer");
 
-    const showSlider     = variant.showControls?.includes("slider");
-    const showFpsInput   = variant.showControls?.includes("fpsInput");
+    const showSlider = variant.showControls?.includes("slider");
+    const showFpsInput = variant.showControls?.includes("fpsInput");
     const showLoopButton = variant.showControls?.includes("loopButton");
 
     const imageFilePaths = series?.imageFilePaths ?? [];
@@ -169,13 +167,13 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     /* ---------------------------------------------------------------------- */
     /* 3. stato                                                                */
     /* ---------------------------------------------------------------------- */
-    const [idx, setIdx]       = useState(0);
+    const [idx, setIdx] = useState(0);
     const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(
       () => Array(imageFilePaths.length).fill(null),
     );
     const [loadedCount, setLoadedCount] = useState(0);
-    const [isLooping, setIsLooping]     = useState(false);
-    const [fps, setFps]                 = useState(20);
+    const [isLooping, setIsLooping] = useState(false);
+    const [fps, setFps] = useState(20);
 
     const [zoomStep, setZoomStep] = useState(0);
     const [panFactor, setPanFactor] = useState<{ x: number; y: number }>({
@@ -184,17 +182,31 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     });
 
     const [brightness, setBrightness] = useState(50);
-    const [contrast,   setContrast]   = useState(50);
+    const [contrast, setContrast] = useState(50);
+
+    const [flipH, setFlipH] = useState(false);
+    const [flipV, setFlipV] = useState(false);
 
     const viewportRef = useRef<FrameViewportRef>(null);
 
+    /* ------------------  public imperative methods  ----------------------- */
     useImperativeHandle(
       ref,
       () => ({
-        zoomIn:        () => setZoomStep((z) => Math.min(z + 1, 10)),
-        zoomOut:       () => setZoomStep((z) => Math.max(z - 1, 0)),
-        brightnessUp:  () => setBrightness((b) => Math.min(b + 10, 100)),
-        brightnessDown:() => setBrightness((b) => Math.max(b - 10, 0)),
+        zoomIn: () => setZoomStep((z) => Math.min(z + 1, 10)),
+        zoomOut: () => setZoomStep((z) => Math.max(z - 1, 0)),
+        brightnessUp: () => setBrightness((b) => Math.min(b + 10, 100)),
+        brightnessDown: () => setBrightness((b) => Math.max(b - 10, 0)),
+        flipHorizontal: () => setFlipH((f) => !f),
+        flipVertical: () => setFlipV((f) => !f),
+        resetView: () => {
+          setZoomStep(0);
+          setPanFactor({ x: 0, y: 0 });
+          setBrightness(50);
+          setContrast(50);
+          setFlipH(false);
+          setFlipV(false);
+        },
       }),
       [],
     );
@@ -209,7 +221,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       [clamp],
     );
     const onLoopChange = useCallback((l: boolean) => setIsLooping(l), []);
-    const onFpsChange  = useCallback((v: number) => setFps(v), []);
+    const onFpsChange = useCallback((v: number) => setFps(v), []);
 
     /* ---------------------------------------------------------------------- */
     /* 4. caricamento frame iniziale                                           */
@@ -226,6 +238,8 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       setPanFactor({ x: 0, y: 0 });
       setBrightness(50);
       setContrast(50);
+      setFlipH(false);
+      setFlipV(false);
 
       (async () => {
         try {
@@ -243,7 +257,9 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         }
       })();
 
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firstFrameUrl]);
 
@@ -269,7 +285,9 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         }
       })();
 
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [idx, frames[idx]]);
 
@@ -278,8 +296,14 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       return frames[idx] ?? frames[0];
     }, [series, frames, idx]);
 
-    if (!series)    return <div className="dicom-viewer-container">Seleziona una serie…</div>;
-    if (!displayed) return <div className="dicom-viewer-container">Caricamento immagini…</div>;
+    if (!series)
+      return (
+        <div className="dicom-viewer-container">Seleziona una serie…</div>
+      );
+    if (!displayed)
+      return (
+        <div className="dicom-viewer-container">Caricamento immagini…</div>
+      );
 
     /* ---------------------------------------------------------------------- */
     /* 6. render                                                               */
@@ -295,6 +319,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
           overscrollBehavior: "contain",
         }}
       >
+        {/* VIEWPORT -------------------------------------------------------- */}
         <div style={{ flex: 1, position: "relative" }}>
           <FrameViewport
             ref={viewportRef}
@@ -304,14 +329,20 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             panFactor={panFactor}
             brightness={brightness}
             contrast={contrast}
+            flipHorizontal={flipH}
+            flipVertical={flipV}
             onZoomStepChange={(z) => setZoomStep(z)}
             onPanFactorChange={(p) => setPanFactor(p)}
-            onBrightnessChange={brightnessMode ? (b) => setBrightness(b) : undefined}
-            onContrastChange={brightnessMode ? (c) => setContrast(c) : undefined}
+            onBrightnessChange={
+              brightnessMode ? (b) => setBrightness(b) : undefined
+            }
+            onContrastChange={
+              brightnessMode ? (c) => setContrast(c) : undefined
+            }
           >
             {variant.overlayCircles && (
               <Circle
-                cx={displayed.naturalWidth  / 2}
+                cx={displayed.naturalWidth / 2}
                 cy={displayed.naturalHeight / 2}
                 r={4}
               />
@@ -319,6 +350,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
           </FrameViewport>
         </div>
 
+        {/* NAVIGATION ------------------------------------------------------ */}
         {showSlider && (
           <Navigation
             frameIndex={idx}
