@@ -13,43 +13,45 @@ const ViewerPage: React.FC = () => {
   const selectedSeries =
     (location.state as { series?: SeriesInfo })?.series ?? null;
 
+  /* ----------------------- state ----------------------- */
   const [metadata, setMetadata] = useState<any | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [brightnessMode, setBrightnessMode] = useState(false);
   const [measurementMode, setMeasurementMode] = useState(false);
+  const [annotationMode, setAnnotationMode] = useState(false);
 
+  /* viewer ref/element */
   const viewerRef = useRef<ViewerHandles>(null);
   const viewerContainerRef = useRef<HTMLDivElement>(null);
 
-  /* redirect se manca la serie */
+  /* -------------------- redirect check ----------------- */
   useEffect(() => {
     if (!selectedSeries) navigate("/");
   }, [selectedSeries, navigate]);
 
-  /* toggles */
+  /* ----------------------- toggles --------------------- */
   const toggleSidebar = () => setShowSidebar((v) => !v);
   const toggleBrightnessMode = () => setBrightnessMode((v) => !v);
   const toggleMeasurementMode = () => setMeasurementMode((v) => !v);
+  const toggleAnnotationMode = () => setAnnotationMode((v) => !v);
 
-  /* RESET COMPLETO: disattiva i toggle + reset viewport */
+  /* ------------------------ reset ---------------------- */
   const resetViewer = useCallback(() => {
     setBrightnessMode(false);
     setMeasurementMode(false);
+    setAnnotationMode(false);
     viewerRef.current?.resetView();
   }, []);
 
-  /* fullscreen */
+  /* --------------------- fullscreen -------------------- */
   const enterOrExitFullscreen = () => {
     const el = viewerContainerRef.current;
     if (!el) return;
-    if (!document.fullscreenElement) {
-      el.requestFullscreen?.().catch(() => {});
-    } else {
-      document.exitFullscreen?.().catch(() => {});
-    }
+    if (!document.fullscreenElement) el.requestFullscreen?.().catch(() => {});
+    else document.exitFullscreen?.().catch(() => {});
   };
 
-  /* info row */
+  /* ----------------------- render ---------------------- */
   const infos: [string, string][] = [
     ["Patient ID", metadata?.patientId ?? "—"],
     ["Study", metadata?.studyDescription ?? "—"],
@@ -70,21 +72,24 @@ const ViewerPage: React.FC = () => {
       </div>
 
       <ViewerToolbar
+        /* states */
         showSidebar={showSidebar}
         brightnessMode={brightnessMode}
         measurementMode={measurementMode}
+        annotationMode={annotationMode}
         /* toggles */
         onToggleSidebar={toggleSidebar}
         onToggleBrightnessMode={toggleBrightnessMode}
         onToggleMeasurementMode={toggleMeasurementMode}
-        /* viewport ops */
+        onToggleAnnotationMode={toggleAnnotationMode}
+        /* viewport actions */
         onZoomIn={() => viewerRef.current?.zoomIn()}
         onZoomOut={() => viewerRef.current?.zoomOut()}
         onBrightnessUp={() => viewerRef.current?.brightnessUp()}
         onBrightnessDown={() => viewerRef.current?.brightnessDown()}
         onFlipHorizontal={() => viewerRef.current?.flipHorizontal()}
         onFlipVertical={() => viewerRef.current?.flipVertical()}
-        onResetView={resetViewer}           // <— passiamo il reset
+        onResetView={resetViewer}
         onFullscreen={enterOrExitFullscreen}
       />
 
@@ -92,9 +97,7 @@ const ViewerPage: React.FC = () => {
         <div
           ref={viewerContainerRef}
           className={
-            showSidebar
-              ? "viewer-container with-sidebar"
-              : "viewer-container full-width"
+            showSidebar ? "viewer-container with-sidebar" : "viewer-container full-width"
           }
         >
           {selectedSeries && (
@@ -104,6 +107,7 @@ const ViewerPage: React.FC = () => {
               onMetadataExtracted={setMetadata}
               brightnessMode={brightnessMode}
               measurementMode={measurementMode}
+              annotationMode={annotationMode}
             />
           )}
         </div>

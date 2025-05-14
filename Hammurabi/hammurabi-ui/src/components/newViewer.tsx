@@ -123,6 +123,11 @@ export interface Metadata {
   manufacturer?: string;
 }
 
+/* --- overlay data‑structures --------------------------------------------- */
+type Measurement = { p1: Point; p2: Point };
+type Annotation  = { id: number; x: number; y: number };
+
+/* --- handles exposed to parent ------------------------------------------- */
 export interface ViewerHandles {
   zoomIn: () => void;
   zoomOut: () => void;
@@ -133,14 +138,18 @@ export interface ViewerHandles {
   resetView: () => void;
 }
 
+/* --- props ---------------------------------------------------------------- */
 export interface ViewerProps {
   series: SeriesInfo | null;
   onMetadataExtracted?: (md: Metadata) => void;
   brightnessMode?: boolean;
-  measurementMode?: boolean;
+  measurementMode?: boolean;    // disegna righe + label distanza
+  annotationMode?: boolean;     // disegna cerchietti gialli
 }
 
-type Measurement = { p1: Point; p2: Point };
+/* ========================================================================== */
+/*                            COMPONENT                                       */
+/* ========================================================================== */
 
 const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
   (
@@ -149,6 +158,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       onMetadataExtracted,
       brightnessMode = false,
       measurementMode = false,
+      annotationMode = false,
     },
     ref,
   ) => {
@@ -156,6 +166,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     /* 1. blocca lo scroll della pagina                                        */
     /* ---------------------------------------------------------------------- */
     const containerRef = useRef<HTMLDivElement>(null);
+    const viewportRef = useRef<FrameViewportRef>(null);
 
     useEffect(() => {
       const stopScroll = (e: WheelEvent) => {
@@ -176,23 +187,23 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       overlayCircles: boolean;
     }>("NewViewer");
 
-    const showSlider = variant.showControls?.includes("slider");
+    const showSlider   = variant.showControls?.includes("slider");
     const showFpsInput = variant.showControls?.includes("fpsInput");
-    const showLoopButton = variant.showControls?.includes("loopButton");
+    const showLoopBtn  = variant.showControls?.includes("loopButton");
 
     const imageFilePaths = series?.imageFilePaths ?? [];
     const numberOfImages = series?.numberOfImages ?? 0;
 
     /* ---------------------------------------------------------------------- */
-    /* 3. stato generale viewport                                              */
+    /* 3. stato generale viewport                                             */
     /* ---------------------------------------------------------------------- */
     const [idx, setIdx] = useState(0);
     const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(
       () => Array(imageFilePaths.length).fill(null),
     );
     const [loadedCount, setLoadedCount] = useState(0);
-    const [isLooping, setIsLooping] = useState(false);
-    const [fps, setFps] = useState(20);
+    const [isLooping, setIsLooping]     = useState(false);
+    const [fps, setFps]                 = useState(20);
 
     const [zoomStep, setZoomStep] = useState(0);
     const [panFactor, setPanFactor] = useState<{ x: number; y: number }>({
@@ -201,19 +212,21 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     });
 
     const [brightness, setBrightness] = useState(50);
-    const [contrast, setContrast] = useState(50);
+    const [contrast,   setContrast]   = useState(50);
 
     const [flipH, setFlipH] = useState(false);
     const [flipV, setFlipV] = useState(false);
 
     /* ---------------------------------------------------------------------- */
-    /* 4. stato measurements                                                   */
+    /* 4. stato measurements + annotations                                    */
     /* ---------------------------------------------------------------------- */
     const [measurements, setMeasurements] = useState<Measurement[]>([]);
-    const [tempPoint, setTempPoint] = useState<Point | null>(null);
+    const [tempPoint, setTempPoint]       = useState<Point | null>(null);
     const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
 
-    // reset preview quando cambio modalità
+    const [annotations, setAnnotations] = useState<Annotation[]>([]);
+
+    /* reset preview quando cambio modalità                                   */
     useEffect(() => {
       if (!measurementMode) {
         setTempPoint(null);
@@ -221,9 +234,9 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       }
     }, [measurementMode]);
 
-    const viewportRef = useRef<FrameViewportRef>(null);
-
-    /* ------------------  public imperative methods  ----------------------- */
+    /* ---------------------------------------------------------------------- */
+    /* 5. imperative handles                                                  */
+    /* ---------------------------------------------------------------------- */
     useImperativeHandle(
       ref,
       () => ({
@@ -232,7 +245,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         brightnessUp: () => setBrightness((b) => Math.min(b + 10, 100)),
         brightnessDown: () => setBrightness((b) => Math.max(b - 10, 0)),
         flipHorizontal: () => setFlipH((f) => !f),
-        flipVertical: () => setFlipV((f) => !f),
+        flipVertical:   () => setFlipV((f) => !f),
         resetView: () => {
           setZoomStep(0);
           setPanFactor({ x: 0, y: 0 });
@@ -240,25 +253,17 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
           setContrast(50);
           setFlipH(false);
           setFlipV(false);
+          setMeasurements([]);
+          setAnnotations([]);
+          setTempPoint(null);
+          setPreviewPoint(null);
         },
       }),
       [],
     );
 
-    const clamp = useCallback(
-      (n: number) => Math.max(0, Math.min(n, numberOfImages - 1)),
-      [numberOfImages],
-    );
-
-    const onFrameChange = useCallback(
-      (requested: number) => setIdx(clamp(requested)),
-      [clamp],
-    );
-    const onLoopChange = useCallback((l: boolean) => setIsLooping(l), []);
-    const onFpsChange = useCallback((v: number) => setFps(v), []);
-
     /* ---------------------------------------------------------------------- */
-    /* 5. caricamento frames                                                   */
+    /* 6. caricamento frames                                                  */
     /* ---------------------------------------------------------------------- */
     const firstFrameUrl = imageFilePaths[0] ?? "";
     useEffect(() => {
@@ -275,6 +280,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       setFlipH(false);
       setFlipV(false);
       setMeasurements([]);
+      setAnnotations([]);
       setTempPoint(null);
       setPreviewPoint(null);
 
@@ -294,9 +300,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         }
       })();
 
-      return () => {
-        cancelled = true;
-      };
+      return () => void (cancelled = true);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firstFrameUrl]);
 
@@ -319,9 +323,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         }
       })();
 
-      return () => {
-        cancelled = true;
-      };
+      return () => void (cancelled = true);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [idx, frames[idx]]);
 
@@ -331,25 +333,34 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     }, [series, frames, idx]);
 
     /* ---------------------------------------------------------------------- */
-    /* 6. measurement handlers                                                */
+    /* 7. handlers pointer                                                    */
     /* ---------------------------------------------------------------------- */
+
     const handlePointerDown = useCallback(
       (ev: ViewportPointerEvent) => {
-        if (!measurementMode || !ev.isOverImage) return;
+        if (!ev.isOverImage || ev.button !== 0) return;
 
-        const pt = ev.position;
-        if (!tempPoint) {
-          // primo click
-          setTempPoint(pt);
-          setPreviewPoint(null);
-        } else {
-          // secondo click → salvo misura
-          setMeasurements((m) => [...m, { p1: tempPoint, p2: pt }]);
-          setTempPoint(null);
-          setPreviewPoint(null);
+        /* ---- Annotation mode --------------------------------------------- */
+        if (annotationMode) {
+          const { x, y } = ev.position;
+          setAnnotations((prev) => [...prev, { id: Date.now(), x, y }]);
+          return;
+        }
+
+        /* ---- Measurement mode -------------------------------------------- */
+        if (measurementMode) {
+          const pt = ev.position;
+          if (!tempPoint) {
+            setTempPoint(pt);
+            setPreviewPoint(null);
+          } else {
+            setMeasurements((m) => [...m, { p1: tempPoint, p2: pt }]);
+            setTempPoint(null);
+            setPreviewPoint(null);
+          }
         }
       },
-      [measurementMode, tempPoint],
+      [annotationMode, measurementMode, tempPoint],
     );
 
     const handlePointerMove = useCallback(
@@ -361,9 +372,12 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     );
 
     /* ---------------------------------------------------------------------- */
-    /* 7. overlay di measurements                                             */
+    /* 8. overlays                                                            */
     /* ---------------------------------------------------------------------- */
+
     const measurementOverlays = useMemo(() => {
+      if (!measurementMode) return null;
+
       const items: React.ReactNode[] = [];
 
       const addMeasure = (m: Measurement, preview = false, idx = 0) => {
@@ -420,10 +434,20 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         addMeasure({ p1: tempPoint, p2: previewPoint }, true);
       }
       return items;
-    }, [measurements, tempPoint, previewPoint]);
+    }, [measurementMode, measurements, tempPoint, previewPoint]);
+
+    const annotationOverlays = useMemo(
+      () =>
+        annotationMode
+          ? annotations.map((a) => (
+              <Circle key={a.id} cx={a.x} cy={a.y} r={5} fill="yellow" />
+            ))
+          : null,
+      [annotationMode, annotations],
+    );
 
     /* ---------------------------------------------------------------------- */
-    /* 8. rendering                                                           */
+    /* 9. rendering                                                           */
     /* ---------------------------------------------------------------------- */
     if (!series)
       return (
@@ -449,11 +473,11 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
           <FrameViewport
             ref={viewportRef}
             frame={displayed}
-            cursor={
-              measurementMode
-                ? { imageArea: "crosshair", viewportArea: "crosshair" }
-                : { imageArea: "crosshair", viewportArea: "default" }
-            }
+            cursor={{
+              imageArea:
+                annotationMode || measurementMode ? "crosshair" : "default",
+              viewportArea: annotationMode ? "crosshair" : "default",
+            }}
             zoomStep={zoomStep}
             panFactor={panFactor}
             brightness={brightness}
@@ -471,6 +495,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
           >
+            {/* cerchio debug da schema */}
             {variant.overlayCircles && (
               <Circle
                 cx={displayed.naturalWidth / 2}
@@ -478,7 +503,9 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
                 r={4}
               />
             )}
+
             {measurementOverlays}
+            {annotationOverlays}
           </FrameViewport>
         </div>
 
@@ -487,12 +514,12 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             frameIndex={idx}
             numberOfFrames={numberOfImages}
             numberOfAvailableFrames={loadedCount}
-            isLooping={showLoopButton ? isLooping : false}
+            isLooping={showLoopBtn ? isLooping : false}
             frameRate={showFpsInput ? fps : 20}
             hasArrowButtons
-            onFrameIndexChange={onFrameChange}
-            onIsLoopingChange={showLoopButton ? onLoopChange : undefined}
-            onFrameRateChange={showFpsInput ? onFpsChange : undefined}
+            onFrameIndexChange={(n) => setIdx(Math.max(0, Math.min(n, numberOfImages - 1)))}
+            onIsLoopingChange={showLoopBtn ? (l) => setIsLooping(l) : undefined}
+            onFrameRateChange={showFpsInput ? (v) => setFps(v) : undefined}
           />
         )}
       </div>

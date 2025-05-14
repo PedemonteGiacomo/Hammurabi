@@ -7,11 +7,13 @@ interface ViewerToolbarProps {
   showSidebar: boolean;
   brightnessMode: boolean;
   measurementMode: boolean;
+  annotationMode: boolean;
 
   /* toggles */
   onToggleSidebar: () => void;
   onToggleBrightnessMode: () => void;
   onToggleMeasurementMode: () => void;
+  onToggleAnnotationMode: () => void;
 
   /* viewport actions */
   onZoomIn?: () => void;
@@ -20,24 +22,22 @@ interface ViewerToolbarProps {
   onBrightnessDown?: () => void;
   onFlipHorizontal?: () => void;
   onFlipVertical?: () => void;
-  onResetView?: () => void;          // <— riceve il reset completo
+  onResetView?: () => void;
   onFullscreen?: () => void;
 }
 
 type ButtonCfg = { id: string; icon: string; title: string };
-
-type Variant = {
-  buttons: ButtonCfg[];
-  layout: "horizontal" | "compact" | "stacked";
-};
+type Variant = { buttons: ButtonCfg[]; layout: "horizontal" | "compact" | "stacked" };
 
 const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   showSidebar,
   brightnessMode,
   measurementMode,
+  annotationMode,
   onToggleSidebar,
   onToggleBrightnessMode,
   onToggleMeasurementMode,
+  onToggleAnnotationMode,
   onZoomIn,
   onZoomOut,
   onBrightnessUp,
@@ -47,12 +47,11 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   onResetView,
   onFullscreen,
 }) => {
-  const { buttons = [], layout } =
-    useComponentVariant<Variant>("ViewerToolbar");
+  const { buttons = [], layout } = useComponentVariant<Variant>("ViewerToolbar");
 
-  /* mappa ID → handler */
+  /* id → handler */
   const handlers: Record<string, (() => void) | undefined> = {
-    logo: onResetView,               // <— il logo ora esegue il reset
+    logo: onResetView,
     zoomIn: onZoomIn,
     zoomOut: onZoomOut,
     brightnessMode: onToggleBrightnessMode,
@@ -63,16 +62,17 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
     Reset: onResetView,
     fullscreen: onFullscreen,
     measurements: onToggleMeasurementMode,
+    annotations: onToggleAnnotationMode,
     toggleSidebar: onToggleSidebar,
   };
 
-  /* highlight solo per i toggle reali (NON il logo) */
   const isActive = (id: string): boolean =>
     (id === "brightnessMode" && brightnessMode) ||
-    (id === "toggleSidebar" && showSidebar) ||
-    (id === "measurements" && measurementMode);
+    (id === "measurements" && measurementMode) ||
+    (id === "annotations" && annotationMode) ||
+    (id === "toggleSidebar" && showSidebar);
 
-  /* fallback se lo schema non specifica pulsanti */
+  /* fallback minimale */
   const btns: ButtonCfg[] =
     buttons.length > 0
       ? buttons
@@ -80,27 +80,23 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
           { id: "logo", title: "Reset View", icon: "/assets/esaote_e.svg" },
           { id: "zoomIn", title: "Zoom In", icon: "/assets/zoom-in-svgrepo-com.svg" },
           { id: "zoomOut", title: "Zoom Out", icon: "/assets/zoom-out-svgrepo-com.svg" },
-          { id: "measurements", title: "Measure", icon: "/assets/measure-svgrepo-com.svg" },
+          { id: "annotations", title: "Annotations", icon: "/assets/note-svgrepo-com.svg" },
           { id: "toggleSidebar", title: "Metadata", icon: "/assets/info-svgrepo-com.svg" },
         ];
 
   return (
-    <div
-      className={`viewer-toolbar-container layout-${layout || "horizontal"}`}
-    >
+    <div className={`viewer-toolbar-container layout-${layout || "horizontal"}`}>
       <ul className="toolbar-list">
         {btns.map((b) => {
           const click = handlers[b.id];
+          const active = isActive(b.id);
           return (
             <li
               key={b.id}
-              className={`toolbar-item ${isActive(b.id) ? "active" : ""}`}
+              className={`toolbar-item ${active ? "active" : ""}`}
               title={b.title}
               onClick={click}
-              style={{
-                cursor: click ? "pointer" : "default",
-                opacity: click ? 1 : 0.4,
-              }}
+              style={{ cursor: click ? "pointer" : "default", opacity: click ? 1 : 0.4 }}
             >
               <img src={b.icon} alt={b.id} />
             </li>
