@@ -133,73 +133,87 @@ export interface ViewerProps {
 
 const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
   ({ series, onMetadataExtracted, brightnessMode = false }, ref) => {
-    /* ───── schema‑driven variant ───── */
+    /* ---------------------------------------------------------------------- */
+    /* 1. blocca lo scroll della pagina                                        */
+    /* ---------------------------------------------------------------------- */
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      /* Listener globale ‑ passive:false ‑ che annulla lo scroll
+         **solo** se il target è dentro il viewer                          */
+      const stopScroll = (e: WheelEvent) => {
+        const el = containerRef.current;
+        if (el && el.contains(e.target as Node)) {
+          e.preventDefault();
+        }
+      };
+      window.addEventListener("wheel", stopScroll, { passive: false });
+      return () => window.removeEventListener("wheel", stopScroll);
+    }, []);
+
+    /* ---------------------------------------------------------------------- */
+    /* 2. varianti schema‑driven                                              */
+    /* ---------------------------------------------------------------------- */
     const variant = useComponentVariant<{
       showControls: string[];
       overlayCircles: boolean;
     }>("NewViewer");
 
-    const showSlider = variant.showControls?.includes("slider");
-    const showFpsInput = variant.showControls?.includes("fpsInput");
+    const showSlider     = variant.showControls?.includes("slider");
+    const showFpsInput   = variant.showControls?.includes("fpsInput");
     const showLoopButton = variant.showControls?.includes("loopButton");
 
     const imageFilePaths = series?.imageFilePaths ?? [];
     const numberOfImages = series?.numberOfImages ?? 0;
 
-    /* ───── frame loading state ───── */
-    const [idx, setIdx] = useState(0);
-    const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(() =>
-      Array(imageFilePaths.length).fill(null),
+    /* ---------------------------------------------------------------------- */
+    /* 3. stato                                                                */
+    /* ---------------------------------------------------------------------- */
+    const [idx, setIdx]       = useState(0);
+    const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(
+      () => Array(imageFilePaths.length).fill(null),
     );
     const [loadedCount, setLoadedCount] = useState(0);
-    const [isLooping, setIsLooping] = useState(false);
-    const [fps, setFps] = useState(20);
+    const [isLooping, setIsLooping]     = useState(false);
+    const [fps, setFps]                 = useState(20);
 
-    /* ───── zoom & pan state ───── */
     const [zoomStep, setZoomStep] = useState(0);
     const [panFactor, setPanFactor] = useState<{ x: number; y: number }>({
       x: 0,
       y: 0,
     });
 
-    /* ───── brightness & contrast state ───── */
     const [brightness, setBrightness] = useState(50);
-    const [contrast, setContrast] = useState(50);
+    const [contrast,   setContrast]   = useState(50);
 
-    /* viewport ref */
     const viewportRef = useRef<FrameViewportRef>(null);
 
-    /* expose controls */
     useImperativeHandle(
       ref,
       () => ({
-        zoomIn: () => setZoomStep((z) => Math.min(z + 1, 10)),
-        zoomOut: () => setZoomStep((z) => Math.max(z - 1, 0)),
-        brightnessUp: () => setBrightness((b) => Math.min(b + 10, 100)),
-        brightnessDown: () => setBrightness((b) => Math.max(b - 10, 0)),
+        zoomIn:        () => setZoomStep((z) => Math.min(z + 1, 10)),
+        zoomOut:       () => setZoomStep((z) => Math.max(z - 1, 0)),
+        brightnessUp:  () => setBrightness((b) => Math.min(b + 10, 100)),
+        brightnessDown:() => setBrightness((b) => Math.max(b - 10, 0)),
       }),
       [],
     );
 
-    /* clamp helper */
     const clamp = useCallback(
       (n: number) => Math.max(0, Math.min(n, numberOfImages - 1)),
       [numberOfImages],
     );
 
-    /* navigation callbacks */
     const onFrameChange = useCallback(
-      (requested: number) => {
-        const c = clamp(requested);
-        setIdx(c);
-      },
+      (requested: number) => setIdx(clamp(requested)),
       [clamp],
     );
-
     const onLoopChange = useCallback((l: boolean) => setIsLooping(l), []);
-    const onFpsChange = useCallback((v: number) => setFps(v), []);
+    const onFpsChange  = useCallback((v: number) => setFps(v), []);
 
-    /* load first frame */
+    /* ---------------------------------------------------------------------- */
+    /* 4. caricamento frame iniziale                                           */
+    /* ---------------------------------------------------------------------- */
     const firstFrameUrl = imageFilePaths[0] ?? "";
     useEffect(() => {
       if (!firstFrameUrl) return;
@@ -208,6 +222,10 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       setIdx(0);
       setFrames(Array(imageFilePaths.length).fill(null));
       setLoadedCount(0);
+      setZoomStep(0);
+      setPanFactor({ x: 0, y: 0 });
+      setBrightness(50);
+      setContrast(50);
 
       (async () => {
         try {
@@ -225,11 +243,13 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         }
       })();
 
-      return () => void (cancelled = true);
+      return () => { cancelled = true; };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firstFrameUrl]);
 
-    /* load subsequent frames */
+    /* ---------------------------------------------------------------------- */
+    /* 5. caricamento frame successivi                                         */
+    /* ---------------------------------------------------------------------- */
     useEffect(() => {
       if (!series || idx === 0 || frames[idx]) return;
       let cancelled = false;
@@ -249,29 +269,31 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         }
       })();
 
-      return () => void (cancelled = true);
+      return () => { cancelled = true; };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [idx, frames[idx]]);
 
-    /* which image to show */
     const displayed = useMemo<HTMLImageElement | null>(() => {
       if (!series) return null;
       return frames[idx] ?? frames[0];
     }, [series, frames, idx]);
 
-    /* fallbacks */
-    if (!series) {
-      return <div className="dicom-viewer-container">Seleziona una serie…</div>;
-    }
-    if (!displayed) {
-      return <div className="dicom-viewer-container">Caricamento immagini…</div>;
-    }
+    if (!series)    return <div className="dicom-viewer-container">Seleziona una serie…</div>;
+    if (!displayed) return <div className="dicom-viewer-container">Caricamento immagini…</div>;
 
-    /* render */
+    /* ---------------------------------------------------------------------- */
+    /* 6. render                                                               */
+    /* ---------------------------------------------------------------------- */
     return (
       <div
+        ref={containerRef}
         className="dicom-viewer-container"
-        style={{ display: "flex", flexDirection: "column", height: "100%" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overscrollBehavior: "contain",
+        }}
       >
         <div style={{ flex: 1, position: "relative" }}>
           <FrameViewport
@@ -284,16 +306,12 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             contrast={contrast}
             onZoomStepChange={(z) => setZoomStep(z)}
             onPanFactorChange={(p) => setPanFactor(p)}
-            onBrightnessChange={
-              brightnessMode ? (b) => setBrightness(b) : undefined
-            }
-            onContrastChange={
-              brightnessMode ? (c) => setContrast(c) : undefined
-            }
+            onBrightnessChange={brightnessMode ? (b) => setBrightness(b) : undefined}
+            onContrastChange={brightnessMode ? (c) => setContrast(c) : undefined}
           >
             {variant.overlayCircles && (
               <Circle
-                cx={displayed.naturalWidth / 2}
+                cx={displayed.naturalWidth  / 2}
                 cy={displayed.naturalHeight / 2}
                 r={4}
               />
