@@ -14,10 +14,18 @@ import {
   FrameViewport,
   type FrameViewportRef,
 } from "../newViewport/components/FrameViewport";
+import {
+  Circle,
+  Polyline,
+  Text,
+} from "../newViewport/components/Overlays";
 import { Navigation } from "../newViewport/components/Navigation";
-import { Circle } from "../newViewport/components/Overlays";
 import { SeriesInfo } from "./NestedDicomTable";
 import { useComponentVariant } from "../hooks/useComponentVariant";
+import {
+  Point,
+  ViewportPointerEvent,
+} from "../newViewport/types";
 
 /* -------------------------------------------------------------------------- */
 /*  Utility helpers                                                           */
@@ -129,10 +137,21 @@ export interface ViewerProps {
   series: SeriesInfo | null;
   onMetadataExtracted?: (md: Metadata) => void;
   brightnessMode?: boolean;
+  measurementMode?: boolean;
 }
 
+type Measurement = { p1: Point; p2: Point };
+
 const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
-  ({ series, onMetadataExtracted, brightnessMode = false }, ref) => {
+  (
+    {
+      series,
+      onMetadataExtracted,
+      brightnessMode = false,
+      measurementMode = false,
+    },
+    ref,
+  ) => {
     /* ---------------------------------------------------------------------- */
     /* 1. blocca lo scroll della pagina                                        */
     /* ---------------------------------------------------------------------- */
@@ -165,7 +184,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     const numberOfImages = series?.numberOfImages ?? 0;
 
     /* ---------------------------------------------------------------------- */
-    /* 3. stato                                                                */
+    /* 3. stato generale viewport                                              */
     /* ---------------------------------------------------------------------- */
     const [idx, setIdx] = useState(0);
     const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(
@@ -186,6 +205,21 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
 
     const [flipH, setFlipH] = useState(false);
     const [flipV, setFlipV] = useState(false);
+
+    /* ---------------------------------------------------------------------- */
+    /* 4. stato measurements                                                   */
+    /* ---------------------------------------------------------------------- */
+    const [measurements, setMeasurements] = useState<Measurement[]>([]);
+    const [tempPoint, setTempPoint] = useState<Point | null>(null);
+    const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
+
+    // reset preview quando cambio modalità
+    useEffect(() => {
+      if (!measurementMode) {
+        setTempPoint(null);
+        setPreviewPoint(null);
+      }
+    }, [measurementMode]);
 
     const viewportRef = useRef<FrameViewportRef>(null);
 
@@ -224,7 +258,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     const onFpsChange = useCallback((v: number) => setFps(v), []);
 
     /* ---------------------------------------------------------------------- */
-    /* 4. caricamento frame iniziale                                           */
+    /* 5. caricamento frames                                                   */
     /* ---------------------------------------------------------------------- */
     const firstFrameUrl = imageFilePaths[0] ?? "";
     useEffect(() => {
@@ -240,6 +274,9 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       setContrast(50);
       setFlipH(false);
       setFlipV(false);
+      setMeasurements([]);
+      setTempPoint(null);
+      setPreviewPoint(null);
 
       (async () => {
         try {
@@ -263,9 +300,6 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firstFrameUrl]);
 
-    /* ---------------------------------------------------------------------- */
-    /* 5. caricamento frame successivi                                         */
-    /* ---------------------------------------------------------------------- */
     useEffect(() => {
       if (!series || idx === 0 || frames[idx]) return;
       let cancelled = false;
@@ -296,6 +330,101 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       return frames[idx] ?? frames[0];
     }, [series, frames, idx]);
 
+    /* ---------------------------------------------------------------------- */
+    /* 6. measurement handlers                                                */
+    /* ---------------------------------------------------------------------- */
+    const handlePointerDown = useCallback(
+      (ev: ViewportPointerEvent) => {
+        if (!measurementMode || !ev.isOverImage) return;
+
+        const pt = ev.position;
+        if (!tempPoint) {
+          // primo click
+          setTempPoint(pt);
+          setPreviewPoint(null);
+        } else {
+          // secondo click → salvo misura
+          setMeasurements((m) => [...m, { p1: tempPoint, p2: pt }]);
+          setTempPoint(null);
+          setPreviewPoint(null);
+        }
+      },
+      [measurementMode, tempPoint],
+    );
+
+    const handlePointerMove = useCallback(
+      (ev: ViewportPointerEvent) => {
+        if (!measurementMode || !tempPoint) return;
+        setPreviewPoint(ev.position);
+      },
+      [measurementMode, tempPoint],
+    );
+
+    /* ---------------------------------------------------------------------- */
+    /* 7. overlay di measurements                                             */
+    /* ---------------------------------------------------------------------- */
+    const measurementOverlays = useMemo(() => {
+      const items: React.ReactNode[] = [];
+
+      const addMeasure = (m: Measurement, preview = false, idx = 0) => {
+        const { p1, p2 } = m;
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const label = `${dist.toFixed(0)} px`;
+        const mid: Point = { x: p1.x + dx / 2, y: p1.y + dy / 2 };
+
+        items.push(
+          <Polyline
+            key={`pl-${preview ? "prev" : idx}`}
+            points={`${p1.x},${p1.y} ${p2.x},${p2.y}`}
+            stroke={preview ? "orange" : "#00eaff"}
+            strokeWidth={preview ? 1.5 : 2}
+            strokeDasharray={preview ? "4 4" : undefined}
+          />,
+        );
+        items.push(
+          <Circle
+            key={`c1-${preview ? "prev" : idx}`}
+            cx={p1.x}
+            cy={p1.y}
+            r={3}
+            fill={preview ? "orange" : "#00eaff"}
+          />,
+        );
+        items.push(
+          <Circle
+            key={`c2-${preview ? "prev" : idx}`}
+            cx={p2.x}
+            cy={p2.y}
+            r={3}
+            fill={preview ? "orange" : "#00eaff"}
+          />,
+        );
+        items.push(
+          <Text
+            key={`txt-${preview ? "prev" : idx}`}
+            x={mid.x}
+            y={mid.y - 8}
+            fontSize={12}
+            fill={preview ? "orange" : "white"}
+            textAnchor="middle"
+          >
+            {label}
+          </Text>,
+        );
+      };
+
+      measurements.forEach((m, i) => addMeasure(m, false, i));
+      if (tempPoint && previewPoint) {
+        addMeasure({ p1: tempPoint, p2: previewPoint }, true);
+      }
+      return items;
+    }, [measurements, tempPoint, previewPoint]);
+
+    /* ---------------------------------------------------------------------- */
+    /* 8. rendering                                                           */
+    /* ---------------------------------------------------------------------- */
     if (!series)
       return (
         <div className="dicom-viewer-container">Seleziona una serie…</div>
@@ -305,9 +434,6 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         <div className="dicom-viewer-container">Caricamento immagini…</div>
       );
 
-    /* ---------------------------------------------------------------------- */
-    /* 6. render                                                               */
-    /* ---------------------------------------------------------------------- */
     return (
       <div
         ref={containerRef}
@@ -319,12 +445,15 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
           overscrollBehavior: "contain",
         }}
       >
-        {/* VIEWPORT -------------------------------------------------------- */}
         <div style={{ flex: 1, position: "relative" }}>
           <FrameViewport
             ref={viewportRef}
             frame={displayed}
-            cursor={{ imageArea: "crosshair", viewportArea: "default" }}
+            cursor={
+              measurementMode
+                ? { imageArea: "crosshair", viewportArea: "crosshair" }
+                : { imageArea: "crosshair", viewportArea: "default" }
+            }
             zoomStep={zoomStep}
             panFactor={panFactor}
             brightness={brightness}
@@ -339,6 +468,8 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             onContrastChange={
               brightnessMode ? (c) => setContrast(c) : undefined
             }
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
           >
             {variant.overlayCircles && (
               <Circle
@@ -347,10 +478,10 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
                 r={4}
               />
             )}
+            {measurementOverlays}
           </FrameViewport>
         </div>
 
-        {/* NAVIGATION ------------------------------------------------------ */}
         {showSlider && (
           <Navigation
             frameIndex={idx}

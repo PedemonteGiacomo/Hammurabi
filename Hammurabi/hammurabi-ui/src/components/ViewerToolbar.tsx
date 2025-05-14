@@ -3,11 +3,15 @@ import React from "react";
 import { useComponentVariant } from "../hooks/useComponentVariant";
 
 interface ViewerToolbarProps {
-  /* state & toggles */
+  /* state */
   showSidebar: boolean;
   brightnessMode: boolean;
+  measurementMode: boolean;
+
+  /* toggles */
   onToggleSidebar: () => void;
   onToggleBrightnessMode: () => void;
+  onToggleMeasurementMode: () => void;
 
   /* viewport actions */
   onZoomIn?: () => void;
@@ -30,8 +34,10 @@ type Variant = {
 const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   showSidebar,
   brightnessMode,
+  measurementMode,
   onToggleSidebar,
   onToggleBrightnessMode,
+  onToggleMeasurementMode,
   onZoomIn,
   onZoomOut,
   onBrightnessUp,
@@ -41,10 +47,8 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   onResetView,
   onFullscreen,
 }) => {
-  /* schema‑driven variant */
-  const { buttons = [], layout } = useComponentVariant<Variant>(
-    "ViewerToolbar",
-  );
+  const { buttons = [], layout } =
+    useComponentVariant<Variant>("ViewerToolbar");
 
   const handlers: Record<string, (() => void) | undefined> = {
     zoomIn: onZoomIn,
@@ -54,11 +58,16 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
     brightnessDown: onBrightnessDown,
     flipHorizontal: onFlipHorizontal,
     flipVertical: onFlipVertical,
-    fullscreen: onFullscreen,
     Reset: onResetView,
+    fullscreen: onFullscreen,
+    measurements: onToggleMeasurementMode,
     toggleSidebar: onToggleSidebar,
-    // i comandi non (ancora) implementati restano undefined
   };
+
+  const isActive = (id: string): boolean =>
+    (id === "brightnessMode" && brightnessMode) ||
+    (id === "toggleSidebar" && showSidebar) ||
+    (id === "measurements" && measurementMode);
 
   const btns: ButtonCfg[] =
     buttons.length > 0
@@ -66,15 +75,14 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
       : [
           { id: "zoomIn", title: "Zoom In", icon: "/assets/zoom-in-svgrepo-com.svg" },
           { id: "zoomOut", title: "Zoom Out", icon: "/assets/zoom-out-svgrepo-com.svg" },
+          { id: "measurements", title: "Measure", icon: "/assets/measure-svgrepo-com.svg" },
           { id: "toggleSidebar", title: "Metadata", icon: "/assets/info-svgrepo-com.svg" },
         ];
 
-  const isActive = (id: string): boolean =>
-    (id === "brightnessMode" && brightnessMode) ||
-    (id === "toggleSidebar" && showSidebar);
-
   return (
-    <div className={`viewer-toolbar-container layout-${layout || "horizontal"}`}>
+    <div
+      className={`viewer-toolbar-container layout-${layout || "horizontal"}`}
+    >
       <ul className="toolbar-list">
         {btns.map((b) => {
           const click = handlers[b.id];
