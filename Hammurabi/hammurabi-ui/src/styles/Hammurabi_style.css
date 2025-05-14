@@ -410,15 +410,11 @@ body {
   border-radius: 4px;
 }
 
-/* Colore del testo degli input numerici nella barra di navigazione */
-.viewer-navigation input[type="number"] {
-  color: #000 !important;          /* testo nero */
-  background-color: #fff !important; /* sfondo bianco, così si legge meglio */
-}
-
-/* Se hai altri input nel ViewerToolbar (o altrove) senza classe specifica: */
-.viewer-toolbar-container input,
-.viewer-main-row input {
-  color: #000 !important;
-  background-color: #fff !important;
+/* ======================================== */
+/* === CSS for input commands === */
+.viewer-main-row input[type="text"],
+.viewer-main-row input[type="number"],
+.viewer-main-row input[type="search"]{
+  color:#000 !important;
+  background-color:#fff !important;
 }
