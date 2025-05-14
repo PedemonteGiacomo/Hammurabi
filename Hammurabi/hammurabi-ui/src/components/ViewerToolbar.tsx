@@ -1,6 +1,7 @@
 // src/components/ViewerToolbar.tsx
 
-import React from 'react';
+import React from "react";
+import { useComponentVariant } from "../hooks/useComponentVariant";
 
 interface ViewerToolbarProps {
   showSidebar: boolean;
@@ -11,8 +12,14 @@ interface ViewerToolbarProps {
   onBrightnessDown?: () => void;
   brightnessMode: boolean;
   onToggleBrightnessMode: () => void;
-  // in futuro potresti aggiungere onRotate?, onPan?, ecc.
 }
+
+type ButtonCfg = { id: string; icon: string; title: string };
+
+type Variant = {
+  buttons: ButtonCfg[];
+  layout: "horizontal" | "compact" | "stacked";
+};
 
 const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   showSidebar,
@@ -24,113 +31,51 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   brightnessMode,
   onToggleBrightnessMode,
 }) => {
+  /* schema‑driven variant */
+  const { buttons = [], layout } = useComponentVariant<Variant>(
+    "ViewerToolbar",
+  );
+
+  /* id -> handler mapping  */
+  const handlers: Record<string, (() => void) | undefined> = {
+    zoomIn: onZoomIn,
+    zoomOut: onZoomOut,
+    brightnessMode: onToggleBrightnessMode,
+    brightnessUp: onBrightnessUp,
+    brightnessDown: onBrightnessDown,
+    toggleSidebar: onToggleSidebar,
+  };
+
+  /* Build button list.  If schema absent fallback to a default minimal set */
+  const btns: ButtonCfg[] =
+    buttons.length > 0
+      ? buttons
+      : [
+          { id: "zoomIn", title: "Zoom In", icon: "/assets/zoom-in-svgrepo-com.svg" },
+          { id: "zoomOut", title: "Zoom Out", icon: "/assets/zoom-out-svgrepo-com.svg" },
+          { id: "toggleSidebar", title: "Metadata", icon: "/assets/info-svgrepo-com.svg" },
+        ];
+
   return (
-    <div className="viewer-toolbar-container">
+    <div className={`viewer-toolbar-container layout-${layout || "horizontal"}`}>
       <ul className="toolbar-list">
-        {/* File button */}
-        <li className="toolbar-item" title="File Menu">
-          <img src="/assets/esaote_e.svg" alt="File" />
-        </li>
-
-        {/* Zoom In */}
-        <li
-          className="toolbar-item"
-          title="Zoom In"
-          onClick={onZoomIn}
-          style={{ cursor: onZoomIn ? 'pointer' : 'default' }}
-        >
-          <img src="/assets/zoom-in-svgrepo-com.svg" alt="Zoom In" />
-        </li>
-
-        {/* Zoom Out */}
-        <li
-          className="toolbar-item"
-          title="Zoom Out"
-          onClick={onZoomOut}
-          style={{ cursor: onZoomOut ? 'pointer' : 'default' }}
-        >
-          <img src="/assets/zoom-out-svgrepo-com.svg" alt="Zoom Out" />
-        </li>
-
-        {/* Brightness Mode Toggle */}
-        <li
-          className={`toolbar-item ${brightnessMode ? 'active' : ''}`}
-          title={brightnessMode ? 'Disable Brightness Mode' : 'Enable Brightness Mode'}
-          onClick={onToggleBrightnessMode}
-          style={{ cursor: 'pointer' }}
-        >
-          <img src="/assets/brightness-mode.svg" alt="Brightness Mode" />
-        </li>
-
-        {/* Brightness Up */}
-        <li
-          className="toolbar-item"
-          title="Brightness Up"
-          onClick={onBrightnessUp}
-          style={{ cursor: onBrightnessUp ? 'pointer' : 'default' }}
-        >
-          <img src="/assets/brightness-up.svg" alt="Brightness Up" />
-        </li>
-
-        {/* Brightness Down */}
-        <li
-          className="toolbar-item"
-          title="Brightness Down"
-          onClick={onBrightnessDown}
-          style={{ cursor: onBrightnessDown ? 'pointer' : 'default' }}
-        >
-          <img src="/assets/brightness-down.svg" alt="Brightness Down" />
-        </li>
-
-        {/* Rotate button */}
-        <li className="toolbar-item" title="Rotate">
-          <img src="/assets/rotate-svgrepo-com.svg" alt="Rotate" />
-        </li>
-
-        {/* Pan button */}
-        <li className="toolbar-item" title="Pan">
-          <img src="/assets/pan-svgrepo-com.svg" alt="Pan" />
-        </li>
-
-        {/* Annotation button */}
-        <li className="toolbar-item" title="Add Annotation">
-          <img src="/assets/note-svgrepo-com.svg" alt="Annotation" />
-        </li>
-
-        {/* Measure button */}
-        <li className="toolbar-item" title="Measure">
-          <img src="/assets/measure-svgrepo-com.svg" alt="Measure" />
-        </li>
-
-        {/* Fullscreen button */}
-        <li className="toolbar-item" title="Fullscreen">
-          <img src="/assets/fullscreen-svgrepo-com.svg" alt="Fullscreen" />
-        </li>
-
-        {/* Flip Horizontal */}
-        <li className="toolbar-item" title="Flip Horizontal">
-          <img src="/assets/flip-horizontal-svgrepo-com.svg" alt="Flip H" />
-        </li>
-
-        {/* Flip Vertical */}
-        <li className="toolbar-item" title="Flip Vertical">
-          <img src="/assets/flip-vertical-svgrepo-com.svg" alt="Flip V" />
-        </li>
-
-        {/* Reset View */}
-        <li className="toolbar-item" title="Reset View">
-          <img src="/assets/reset-view-svgrepo-com.svg" alt="Reset View" />
-        </li>
-
-        {/* Info icon: toggles the metadata panel */}
-        <li
-          className="toolbar-item"
-          onClick={onToggleSidebar}
-          style={{ cursor: 'pointer' }}
-          title={showSidebar ? "Hide Metadata Panel" : "Show Metadata Panel"}
-        >
-          <img src="/assets/info-svgrepo-com.svg" alt="Info" />
-        </li>
+        {btns.map((b) => {
+          const click = handlers[b.id];
+          const isActive =
+            (b.id === "brightnessMode" && brightnessMode) ||
+            (b.id === "toggleSidebar" && showSidebar);
+          return (
+            <li
+              key={b.id}
+              className={`toolbar-item ${isActive ? "active" : ""}`}
+              title={b.title}
+              onClick={click}
+              style={{ cursor: click ? "pointer" : "default" }}
+            >
+              <img src={b.icon} alt={b.id} />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

@@ -1,6 +1,8 @@
 // src/components/Sidebar.tsx
-import React from 'react';
-import DicomMetadataPanel from './DicomMetadataPanel';
+
+import React from "react";
+import DicomMetadataPanel from "./DicomMetadataPanel";
+import { useComponentVariant } from "../hooks/useComponentVariant";
 
 interface SidebarProps {
   metadata: {
@@ -11,12 +13,21 @@ interface SidebarProps {
     studyDescription?: string;
     seriesDescription?: string;
     manufacturer?: string;
-  } | null; 
+  } | null;
+}
+
+/* Schema variant type */
+interface Variant {
+  width: string | number;
+  collapsible?: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ metadata }) => {
+  /* schema‑driven styles */
+  const { width } = useComponentVariant<Variant>("Sidebar");
+
   return (
-    <aside className="viewer-sidebar">
+    <aside className="viewer-sidebar" style={width ? { width } : undefined}>
       <h3 className="sidebar-title">DICOM Metadata</h3>
       <DicomMetadataPanel metadata={metadata} />
     </aside>
