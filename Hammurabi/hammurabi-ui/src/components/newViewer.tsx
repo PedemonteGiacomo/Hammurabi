@@ -1,4 +1,6 @@
+// ─────────────────────────────────────────────────────────────────────────────
 // src/components/newViewer.tsx
+// ─────────────────────────────────────────────────────────────────────────────
 import React, {
   useState,
   useEffect,
@@ -125,7 +127,7 @@ export interface Metadata {
 
 /* --- overlay data‑structures --------------------------------------------- */
 type Measurement = { p1: Point; p2: Point };
-type Annotation  = { id: number; x: number; y: number };
+type Annotation  = { id: number; x: number; y: number; text: string };
 
 /* --- handles exposed to parent ------------------------------------------- */
 export interface ViewerHandles {
@@ -143,8 +145,8 @@ export interface ViewerProps {
   series: SeriesInfo | null;
   onMetadataExtracted?: (md: Metadata) => void;
   brightnessMode?: boolean;
-  measurementMode?: boolean;    // disegna righe + label distanza
-  annotationMode?: boolean;     // disegna cerchietti gialli
+  measurementMode?: boolean;    // righe + label distanza
+  annotationMode?: boolean;     // marker + testo
 }
 
 /* ========================================================================== */
@@ -166,14 +168,12 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     /* 1. blocca lo scroll della pagina                                        */
     /* ---------------------------------------------------------------------- */
     const containerRef = useRef<HTMLDivElement>(null);
-    const viewportRef = useRef<FrameViewportRef>(null);
+    const viewportRef  = useRef<FrameViewportRef>(null);
 
     useEffect(() => {
       const stopScroll = (e: WheelEvent) => {
         const el = containerRef.current;
-        if (el && el.contains(e.target as Node)) {
-          e.preventDefault();
-        }
+        if (el && el.contains(e.target as Node)) e.preventDefault();
       };
       window.addEventListener("wheel", stopScroll, { passive: false });
       return () => window.removeEventListener("wheel", stopScroll);
@@ -224,9 +224,8 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     const [tempPoint, setTempPoint]       = useState<Point | null>(null);
     const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
 
-    const [annotations, setAnnotations] = useState<Annotation[]>([]);
+    const [annotations, setAnnotations]   = useState<Annotation[]>([]);
 
-    /* reset preview quando cambio modalità                                   */
     useEffect(() => {
       if (!measurementMode) {
         setTempPoint(null);
@@ -240,12 +239,12 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     useImperativeHandle(
       ref,
       () => ({
-        zoomIn: () => setZoomStep((z) => Math.min(z + 1, 10)),
-        zoomOut: () => setZoomStep((z) => Math.max(z - 1, 0)),
-        brightnessUp: () => setBrightness((b) => Math.min(b + 10, 100)),
-        brightnessDown: () => setBrightness((b) => Math.max(b - 10, 0)),
-        flipHorizontal: () => setFlipH((f) => !f),
-        flipVertical:   () => setFlipV((f) => !f),
+        zoomIn:        () => setZoomStep((z) => Math.min(z + 1, 10)),
+        zoomOut:       () => setZoomStep((z) => Math.max(z - 1, 0)),
+        brightnessUp:  () => setBrightness((b) => Math.min(b + 10, 100)),
+        brightnessDown:() => setBrightness((b) => Math.max(b - 10, 0)),
+        flipHorizontal:() => setFlipH((f) => !f),
+        flipVertical:  () => setFlipV((f) => !f),
         resetView: () => {
           setZoomStep(0);
           setPanFactor({ x: 0, y: 0 });
@@ -300,7 +299,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         }
       })();
 
-      return () => void (cancelled = true);
+      return () => { cancelled = true; };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firstFrameUrl]);
 
@@ -323,7 +322,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         }
       })();
 
-      return () => void (cancelled = true);
+      return () => { cancelled = true; };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [idx, frames[idx]]);
 
@@ -335,19 +334,22 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     /* ---------------------------------------------------------------------- */
     /* 7. handlers pointer                                                    */
     /* ---------------------------------------------------------------------- */
-
     const handlePointerDown = useCallback(
       (ev: ViewportPointerEvent) => {
         if (!ev.isOverImage || ev.button !== 0) return;
 
-        /* ---- Annotation mode --------------------------------------------- */
+        /* -- Annotation Mode ------------------------------------------------ */
         if (annotationMode) {
           const { x, y } = ev.position;
-          setAnnotations((prev) => [...prev, { id: Date.now(), x, y }]);
+          const text = prompt("Annotation text?") ?? "";
+          setAnnotations((prev) => [
+            ...prev,
+            { id: Date.now(), x, y, text },
+          ]);
           return;
         }
 
-        /* ---- Measurement mode -------------------------------------------- */
+        /* -- Measurement Mode ---------------------------------------------- */
         if (measurementMode) {
           const pt = ev.position;
           if (!tempPoint) {
@@ -374,7 +376,6 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     /* ---------------------------------------------------------------------- */
     /* 8. overlays                                                            */
     /* ---------------------------------------------------------------------- */
-
     const measurementOverlays = useMemo(() => {
       if (!measurementMode) return null;
 
@@ -439,9 +440,18 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     const annotationOverlays = useMemo(
       () =>
         annotationMode
-          ? annotations.map((a) => (
-              <Circle key={a.id} cx={a.x} cy={a.y} r={5} fill="yellow" />
-            ))
+          ? annotations.flatMap((a) => [
+              <Circle key={`c-${a.id}`} cx={a.x} cy={a.y} r={5} fill="yellow" />,
+              <Text
+                key={`t-${a.id}`}
+                x={a.x + 8}
+                y={a.y - 8}
+                fontSize={12}
+                fill="yellow"
+              >
+                {a.text}
+              </Text>,
+            ])
           : null,
       [annotationMode, annotations],
     );
@@ -517,9 +527,15 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             isLooping={showLoopBtn ? isLooping : false}
             frameRate={showFpsInput ? fps : 20}
             hasArrowButtons
-            onFrameIndexChange={(n) => setIdx(Math.max(0, Math.min(n, numberOfImages - 1)))}
-            onIsLoopingChange={showLoopBtn ? (l) => setIsLooping(l) : undefined}
-            onFrameRateChange={showFpsInput ? (v) => setFps(v) : undefined}
+            onFrameIndexChange={(n) =>
+              setIdx(Math.max(0, Math.min(n, numberOfImages - 1)))
+            }
+            onIsLoopingChange={
+              showLoopBtn ? (l) => setIsLooping(l) : undefined
+            }
+            onFrameRateChange={
+              showFpsInput ? (v) => setFps(v) : undefined
+            }
           />
         )}
       </div>
