@@ -1,5 +1,5 @@
 // src/pages/ViewerPage.tsx
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import TopBar from "../components/TopBar";
 import ViewerToolbar from "../components/ViewerToolbar";
@@ -21,7 +21,7 @@ const ViewerPage: React.FC = () => {
   const viewerRef = useRef<ViewerHandles>(null);
   const viewerContainerRef = useRef<HTMLDivElement>(null);
 
-  /* se non c’è serie → redirect */
+  /* redirect se manca la serie */
   useEffect(() => {
     if (!selectedSeries) navigate("/");
   }, [selectedSeries, navigate]);
@@ -30,6 +30,13 @@ const ViewerPage: React.FC = () => {
   const toggleSidebar = () => setShowSidebar((v) => !v);
   const toggleBrightnessMode = () => setBrightnessMode((v) => !v);
   const toggleMeasurementMode = () => setMeasurementMode((v) => !v);
+
+  /* RESET COMPLETO: disattiva i toggle + reset viewport */
+  const resetViewer = useCallback(() => {
+    setBrightnessMode(false);
+    setMeasurementMode(false);
+    viewerRef.current?.resetView();
+  }, []);
 
   /* fullscreen */
   const enterOrExitFullscreen = () => {
@@ -66,16 +73,18 @@ const ViewerPage: React.FC = () => {
         showSidebar={showSidebar}
         brightnessMode={brightnessMode}
         measurementMode={measurementMode}
+        /* toggles */
         onToggleSidebar={toggleSidebar}
         onToggleBrightnessMode={toggleBrightnessMode}
         onToggleMeasurementMode={toggleMeasurementMode}
+        /* viewport ops */
         onZoomIn={() => viewerRef.current?.zoomIn()}
         onZoomOut={() => viewerRef.current?.zoomOut()}
         onBrightnessUp={() => viewerRef.current?.brightnessUp()}
         onBrightnessDown={() => viewerRef.current?.brightnessDown()}
         onFlipHorizontal={() => viewerRef.current?.flipHorizontal()}
         onFlipVertical={() => viewerRef.current?.flipVertical()}
-        onResetView={() => viewerRef.current?.resetView()}
+        onResetView={resetViewer}           // <— passiamo il reset
         onFullscreen={enterOrExitFullscreen}
       />
 

@@ -20,7 +20,7 @@ interface ViewerToolbarProps {
   onBrightnessDown?: () => void;
   onFlipHorizontal?: () => void;
   onFlipVertical?: () => void;
-  onResetView?: () => void;
+  onResetView?: () => void;          // <— riceve il reset completo
   onFullscreen?: () => void;
 }
 
@@ -50,7 +50,9 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   const { buttons = [], layout } =
     useComponentVariant<Variant>("ViewerToolbar");
 
+  /* mappa ID → handler */
   const handlers: Record<string, (() => void) | undefined> = {
+    logo: onResetView,               // <— il logo ora esegue il reset
     zoomIn: onZoomIn,
     zoomOut: onZoomOut,
     brightnessMode: onToggleBrightnessMode,
@@ -64,15 +66,18 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
     toggleSidebar: onToggleSidebar,
   };
 
+  /* highlight solo per i toggle reali (NON il logo) */
   const isActive = (id: string): boolean =>
     (id === "brightnessMode" && brightnessMode) ||
     (id === "toggleSidebar" && showSidebar) ||
     (id === "measurements" && measurementMode);
 
+  /* fallback se lo schema non specifica pulsanti */
   const btns: ButtonCfg[] =
     buttons.length > 0
       ? buttons
       : [
+          { id: "logo", title: "Reset View", icon: "/assets/esaote_e.svg" },
           { id: "zoomIn", title: "Zoom In", icon: "/assets/zoom-in-svgrepo-com.svg" },
           { id: "zoomOut", title: "Zoom Out", icon: "/assets/zoom-out-svgrepo-com.svg" },
           { id: "measurements", title: "Measure", icon: "/assets/measure-svgrepo-com.svg" },
