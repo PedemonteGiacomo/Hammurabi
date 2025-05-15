@@ -301,7 +301,7 @@ body {
 .viewer-main-row {
   display: flex;
   flex-direction: row;
-  align-items: stretch;  /* Makes all flex children adopt the same height */
+  /* align-items: stretch;  Makes all flex children adopt the same height */
   gap: 1rem;
 }
 
