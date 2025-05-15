@@ -101,8 +101,8 @@ async function loadDicomImage(filePath: string) {
     patientName:       dataSet.string("x00100010") || "Unknown",
     patientSex:        dataSet.string("x00100040") || "Unknown",
     studyDate:         dataSet.string("x00080020") || "Unknown",
-    studyDescription:  dataSet.string("x00081030") || "Unknown",
-    seriesDescription: dataSet.string("x0008103E") || "Unknown",
+    studyDescription:  dataSet.string("x00081030") || dataSet.string("x00181030") || "Unknown",
+    seriesDescription: dataSet.string("x0008103E") || dataSet.string("x0008103e") || "Unknown",
     manufacturer:      dataSet.string("x00080070") || "Unknown",
   } as const;
 
