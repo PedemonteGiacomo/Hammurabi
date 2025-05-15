@@ -115,14 +115,14 @@ async function loadDicomImage(filePath: string) {
     manufacturer: dataSet.string("x00080070"),
     referringPhysicianName: dataSet.string("x00080090"),
     stationName: dataSet.string("x00081010"),
-    studyDescription: dataSet.string("x00081030"),
+    studyDescription: dataSet.string("x00081030") || dataSet.string("x00181030"),
     seriesDescription: dataSet.string("x0008103E") || dataSet.string("x0008103e"),
     manufacturerModelName: dataSet.string("x00081090"),
     referencedImageSequence: dataSet.elements.x00081140 && dataSet.string("x00081140"),
 
     // — patient identity —
     patientName: dataSet.string("x00100010"),
-    patientID: dataSet.string("x00100020"),
+    patientId: dataSet.string("x00100020"),
     patientBirthDate: dataSet.string("x00100030"),
     patientSex: dataSet.string("x00100040"),
 
