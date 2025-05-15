@@ -131,7 +131,7 @@ body {
 .viewer-page-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
   background-color: #000;    /* pure black */
 }
 
@@ -193,7 +193,7 @@ body {
 .viewer-main-row {
   display: flex;
   flex-direction: row;
-  flex: 1;
+  flex: 1 1 auto; /* Allow it to grow and shrink */
   padding: 1rem;
   gap: 1rem;
   color: black;
@@ -287,6 +287,15 @@ body {
   word-break:break-all; 
 }
 
+.dicom-metadata-panel .metadata-checkbox-row {
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+.dicom-metadata-panel .form-check-input {
+  transform: scale(0.8);
+  margin-right: 0.25rem;
+}
+
 .metadata-checkbox-row {
   display: flex;
   flex-wrap: wrap;
@@ -307,12 +316,22 @@ body {
 
 /* When a sidebar is displayed */
 .viewer-container.with-sidebar {
-  flex: 2;
+  flex: 2 1 auto; /* Allow it to grow and shrink */
+  overflow: hidden;
 }
 
 /* When no sidebar is visible, the viewer takes full width */
 .viewer-container.full-width {
-  flex: 1;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+
+/* 5) breakpoint per mobile/tablet: dai un’altezza percentuale al viewer */
+@media (max-width: 991px) {
+  .viewer-container {
+    min-height: 50vh;
+  }
 }
 
 .sidebar-container {

@@ -5,12 +5,12 @@
       "overlayCircles":  true
     },
     "tablet": {
-      "showControls": ["slider","loopButton"],
-      "overlayCircles": false
+      "showControls": ["slider","fpsInput","loopButton"],
+      "overlayCircles": true
     },
     "mobile": {
-      "showControls": ["slider"],
-      "overlayCircles": false
+      "showControls": ["slider","fpsInput","loopButton"],
+      "overlayCircles": true
     }
   }
 }

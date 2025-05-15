@@ -1,3 +1,4 @@
+// src/pages/ViewerPage.tsx
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import TopBar from "../components/TopBar";
@@ -5,6 +6,7 @@ import ViewerToolbar from "../components/ViewerToolbar";
 import NewViewer, { ViewerHandles } from "../components/newViewer";
 import Sidebar from "../components/Sidebar";
 import { SeriesInfo } from "../components/NestedDicomTable";
+import { useDeviceVariant } from "../hooks/useDeviceVariant";
 
 const ViewerPage: React.FC = () => {
   const navigate        = useNavigate();
@@ -25,6 +27,9 @@ const ViewerPage: React.FC = () => {
 
   /* redirect se manca la serie */
   useEffect(() => { if (!selectedSeries) navigate("/"); }, [selectedSeries, navigate]);
+
+  /* device variant */
+  const device = useDeviceVariant(); // "mobile" | "tablet" | "desktop"
 
   /* -------- toggles -------- */
   const toggleSidebar        = () => setShowSidebar(v => !v);
@@ -63,17 +68,19 @@ const ViewerPage: React.FC = () => {
   return (
     <div className="viewer-page-container">
       <TopBar />
+
+      {/* info sopra il viewer */}
       <div className="viewer-info-row">
-        {infos.map(([l,v])=>(
-          <div key={l} className="viewer-info-block">
-            <span className="info-label">{l}</span>
-            <span className="info-value">{v}</span>
+        {infos.map(([label, value]) => (
+          <div key={label} className="viewer-info-block">
+            <span className="info-label">{label}</span>
+            <span className="info-value">{value}</span>
           </div>
         ))}
       </div>
 
       <ViewerToolbar
-        /* state */
+        /* stato */
         showSidebar={showSidebar}
         brightnessMode={brightnessMode}
         measurementMode={measurementMode}
@@ -85,7 +92,7 @@ const ViewerPage: React.FC = () => {
         onToggleMeasurementMode={toggleMeasurementMode}
         onToggleAnnotationMode={toggleAnnotationMode}
         onTogglePanMode={togglePanMode}
-        /* viewport actions */
+        /* azioni viewport */
         onZoomIn={() => viewerRef.current?.zoomIn()}
         onZoomOut={() => viewerRef.current?.zoomOut()}
         onBrightnessUp={() => viewerRef.current?.brightnessUp()}
@@ -96,11 +103,20 @@ const ViewerPage: React.FC = () => {
         onFullscreen={enterOrExitFullscreen}
       />
 
-      <div className="viewer-main-row">
+      {/* main: viewer + sidebar */}
+      <div
+        className="viewer-main-row"
+        style={{
+          flexDirection: device === "desktop" ? "row" : "column"
+        }}
+      >
         <div
           ref={viewerContainerRef}
-          className={showSidebar ? "viewer-container with-sidebar"
-                                 : "viewer-container full-width"}
+          className={
+            showSidebar
+              ? "viewer-container with-sidebar"
+              : "viewer-container full-width"
+          }
         >
           {selectedSeries && (
             <NewViewer

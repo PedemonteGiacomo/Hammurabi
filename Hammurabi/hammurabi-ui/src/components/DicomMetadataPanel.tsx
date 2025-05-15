@@ -35,7 +35,8 @@ const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => 
     if (
       !val ||
       val === 'Unknown' ||
-      /^[\x00-\x1F]+$/.test(val)
+      /^[\x00-\x1F]+$/.test(val) ||
+      val === '[object Object]'
     ) return;
 
     let cat = 'acquisition';
