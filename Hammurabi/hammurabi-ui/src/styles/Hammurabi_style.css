@@ -17,12 +17,6 @@ body {
 /* ======================================== */
 /* === Top Bar Section (Esaote & User) ==== */
 /* ======================================== */
-.topbar-container {
-  background-color: #c2181e;
-  height: 60px;
-  display: flex;
-  align-items: center;
-}
 
 .topbar-content {
   display: flex;
@@ -361,7 +355,8 @@ body {
 /* Top Bar Styles */
 .topbar-container {
   background-color: #c2181e;
-  height: 60px;
+  min-height: 60px !important;
+  height: auto !important;
   display: flex;
   align-items: center;
   padding: 0 16px;

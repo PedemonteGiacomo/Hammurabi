@@ -8,8 +8,6 @@ import './styles/Hammurabi_style.css';
 import App from './App';
 
 // 👇 import your custom theme
-import { theme } from './theme';
-
 const cognitoAuthConfig = {
   authority: window._env_.REACT_APP_COGNITO_AUTHORITY || '',
   client_id: window._env_.REACT_APP_COGNITO_CLIENT_ID || '',
@@ -24,7 +22,7 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <AuthProvider {...cognitoAuthConfig}>
-    <ChakraProvider >
+    <ChakraProvider resetCSS={false}>
       <App />
     </ChakraProvider>
   </AuthProvider>
