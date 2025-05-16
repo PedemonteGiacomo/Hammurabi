@@ -13,7 +13,6 @@
         { "id":"flipVertical","icon":"/assets/flip-vertical-svgrepo-com.svg", "title":"Flip Vertical" },
         { "id":"pan","icon":"/assets/pan-svgrepo-com.svg", "title":"Pan" },
         { "id":"fullscreen", "icon":"/assets/fullscreen-svgrepo-com.svg", "title":"Fullscreen" },
-        { "id":"annotations","icon":"/assets/note-svgrepo-com.svg", "title":"Annotations" },
         { "id":"Reset","icon":"/assets/reset-view-svgrepo-com.svg", "title":"Reset" },
         { "id":"toggleSidebar","icon":"/assets/info-svgrepo-com.svg", "title":"Metadata" }
       ],
