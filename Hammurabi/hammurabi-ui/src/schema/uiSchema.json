@@ -3,19 +3,25 @@
     "selection": {
       "path": "/",
       "regions": {
-         "main": { "component": "SelectionPage" }
+        "main": {
+          "component": "SelectionPage"
+        }
       }
     },
     "viewer": {
       "path": "/viewer",
       "regions": {
-        "main": { "component": "ViewerPage" }
+        "main": {
+          "component": "ViewerPage"
+        }
       }
     },
     "hello": {
       "path": "/hello",
       "regions": {
-        "main": { "component": "HelloPage" }
+        "main": {
+          "component": "HelloPage"
+        }
       }
     }
   }

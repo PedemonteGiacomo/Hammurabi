@@ -37,10 +37,10 @@ const TopBar: React.FC = () => {
 
   /* ----------------------  Logout (Cognito)  ------------------- */
   const signOutRedirect = () => {
-    const clientId     = window._env_.REACT_APP_COGNITO_CLIENT_ID   || '';
-    const logoutUri    = window._env_.REACT_APP_LOGOUT_URI          || '';
-    const cognitoDomain= window._env_.REACT_APP_COGNITO_DOMAIN      || '';
-    const redirectUri  = window._env_.REACT_APP_COGNITO_REDIRECT_URI|| '';
+    const clientId = window._env_.REACT_APP_COGNITO_CLIENT_ID || '';
+    const logoutUri = window._env_.REACT_APP_LOGOUT_URI || '';
+    const cognitoDomain = window._env_.REACT_APP_COGNITO_DOMAIN || '';
+    const redirectUri = window._env_.REACT_APP_COGNITO_REDIRECT_URI || '';
 
     const logoutUrl =
       `${cognitoDomain}/logout?client_id=${clientId}` +

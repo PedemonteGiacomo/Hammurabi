@@ -440,11 +440,11 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         const { p1, p2 } = m;
         const dx = p2.x - p1.x, dy = p2.y - p1.y;
         const dist = Math.hypot(dx, dy);
-        const mid = { x: p1.x + dx/2, y: p1.y + dy/2 };
+        const mid = { x: p1.x + dx / 2, y: p1.y + dy / 2 };
 
         items.push(
           <Polyline
-            key={`pl-${prev? 'prev':i}`}
+            key={`pl-${prev ? 'prev' : i}`}
             points={`${p1.x},${p1.y} ${p2.x},${p2.y}`}
             stroke={prev ? 'orange' : '#00eaff'}
             strokeWidth={prev ? 1.5 : 2}
@@ -453,21 +453,21 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         );
         items.push(
           <Circle
-            key={`c1-${prev? 'prev':i}`}
+            key={`c1-${prev ? 'prev' : i}`}
             cx={p1.x} cy={p1.y} r={3}
             fill={prev ? 'orange' : '#00eaff'}
           />
         );
         items.push(
           <Circle
-            key={`c2-${prev? 'prev':i}`}
+            key={`c2-${prev ? 'prev' : i}`}
             cx={p2.x} cy={p2.y} r={3}
             fill={prev ? 'orange' : '#00eaff'}
           />
         );
         items.push(
           <Text
-            key={`t-${prev? 'prev':i}`}
+            key={`t-${prev ? 'prev' : i}`}
             x={mid.x} y={mid.y - 8}
             fontSize={12}
             fill={prev ? 'orange' : 'white'}
@@ -478,7 +478,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
         );
       };
 
-      measurements.forEach((m,i) => add(m, false, i));
+      measurements.forEach((m, i) => add(m, false, i));
       if (tempPoint && previewPoint) add({ p1: tempPoint, p2: previewPoint }, true, 0);
       return items;
     })();

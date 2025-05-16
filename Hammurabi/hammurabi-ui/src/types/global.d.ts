@@ -1,5 +1,5 @@
 // src/types/global.d.ts (for example)
-export {};
+export { };
 
 declare global {
   interface Window {

@@ -1,7 +1,22 @@
 {
-  "variants": {
-    "desktop": { "background": "red", "text": "#ffffff", "padding": "2rem",  "borderRadius": 8  },
-    "tablet":  { "background": "blue", "text": "#ffffff", "padding": "1.5rem","borderRadius": 6  },
-    "mobile":  { "background": "green", "text": "#ffffff", "padding": "1rem",  "borderRadius": 4  }
-  }
+    "variants": {
+        "desktop": {
+            "background": "red",
+            "text": "#ffffff",
+            "padding": "2rem",
+            "borderRadius": 8
+        },
+        "tablet": {
+            "background": "blue",
+            "text": "#ffffff",
+            "padding": "1.5rem",
+            "borderRadius": 6
+        },
+        "mobile": {
+            "background": "green",
+            "text": "#ffffff",
+            "padding": "1rem",
+            "borderRadius": 4
+        }
+    }
 }

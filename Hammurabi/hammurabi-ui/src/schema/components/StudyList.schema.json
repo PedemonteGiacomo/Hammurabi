@@ -2,15 +2,24 @@
   "variants": {
     "desktop": {
       "expandBehavior": "click-row",
-      "columns": ["patientID","studyDate","seriesCount"]
+      "columns": [
+        "patientID",
+        "studyDate",
+        "seriesCount"
+      ]
     },
     "tablet": {
       "expandBehavior": "accordion",
-      "columns": ["patientID","studyDate"]
+      "columns": [
+        "patientID",
+        "studyDate"
+      ]
     },
     "mobile": {
       "expandBehavior": "single-expand",
-      "columns": ["patientID"]
+      "columns": [
+        "patientID"
+      ]
     }
   }
 }

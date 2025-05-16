@@ -75,27 +75,27 @@ const ViewerToolbar: React.FC<ViewerToolbarProps> = (props) => {
   const isActive = (id: string): boolean =>
     (id === "brightnessMode" && brightnessMode) ||
     (id === "measurements" && measurementMode) ||
-    (id === "annotations"  && annotationMode) ||
-    (id === "pan"          && panMode) ||
-    (id === "toggleSidebar"&& showSidebar);
+    (id === "annotations" && annotationMode) ||
+    (id === "pan" && panMode) ||
+    (id === "toggleSidebar" && showSidebar);
 
   /* fallback minimale */
   const btns: ButtonCfg[] =
     buttons.length > 0
       ? buttons
       : [
-          { id:"logo",   title:"Reset View", icon:"/assets/esaote_e.svg" },
-          { id:"zoomIn", title:"Zoom In",    icon:"/assets/zoom-in-svgrepo-com.svg" },
-          { id:"zoomOut",title:"Zoom Out",   icon:"/assets/zoom-out-svgrepo-com.svg" },
-          { id:"pan",    title:"Pan",        icon:"/assets/pan-svgrepo-com.svg" },
-          { id:"toggleSidebar", title:"Metadata", icon:"/assets/info-svgrepo-com.svg" },
-        ];
+        { id: "logo", title: "Reset View", icon: "/assets/esaote_e.svg" },
+        { id: "zoomIn", title: "Zoom In", icon: "/assets/zoom-in-svgrepo-com.svg" },
+        { id: "zoomOut", title: "Zoom Out", icon: "/assets/zoom-out-svgrepo-com.svg" },
+        { id: "pan", title: "Pan", icon: "/assets/pan-svgrepo-com.svg" },
+        { id: "toggleSidebar", title: "Metadata", icon: "/assets/info-svgrepo-com.svg" },
+      ];
 
   return (
     <div className={`viewer-toolbar-container layout-${layout || "horizontal"}`}>
       <ul className="toolbar-list">
         {btns.map((b) => {
-          const click  = handlers[b.id];
+          const click = handlers[b.id];
           const active = isActive(b.id);
           return (
             <li

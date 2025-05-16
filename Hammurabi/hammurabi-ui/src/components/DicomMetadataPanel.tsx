@@ -47,9 +47,9 @@ const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => 
     else if (k.includes('series') || k.includes('referencedimage')) cat = 'series';
     else if (['manufacturer', 'model', 'stationname'].some(s => k.includes(s))) cat = 'equipment';
     else if (k.startsWith('private') || k.startsWith('userdata') || k.startsWith('normalization')) cat = 'private';
-    else if (['bodypartexamined','scanningsequence','sequencevariant','scanoptions','mracquisition','slice','echo','repetition','frequency','nucleus','coil','matrix','flip','bandwidth','software','protocol'].some(s => k.includes(s))) cat = 'parameters';
-    else if (['studyinstance','seriesinstance','instance','frame','imagesin','positionreference','sliceLocation'].some(s => k.includes(s))) cat = 'identifiers';
-    else if (['imageposition','imageorientation','rows','columns','pixel','photometric','samplesperpixel','bits','highbit','pixrepresentation','lossy'].some(s => k.includes(s))) cat = 'geometry';
+    else if (['bodypartexamined', 'scanningsequence', 'sequencevariant', 'scanoptions', 'mracquisition', 'slice', 'echo', 'repetition', 'frequency', 'nucleus', 'coil', 'matrix', 'flip', 'bandwidth', 'software', 'protocol'].some(s => k.includes(s))) cat = 'parameters';
+    else if (['studyinstance', 'seriesinstance', 'instance', 'frame', 'imagesin', 'positionreference', 'sliceLocation'].some(s => k.includes(s))) cat = 'identifiers';
+    else if (['imageposition', 'imageorientation', 'rows', 'columns', 'pixel', 'photometric', 'samplesperpixel', 'bits', 'highbit', 'pixrepresentation', 'lossy'].some(s => k.includes(s))) cat = 'geometry';
     else if (k.includes('performedprocedurestep')) cat = 'procedure';
 
     entriesByCat[cat] = entriesByCat[cat] || [];

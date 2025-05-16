@@ -31,8 +31,8 @@ schemaCtx.keys().forEach((k) => {
 export function useComponentVariant<T = unknown>(component: string): T {
   const device = useBreakpointValue<Device>({
     base: "mobile",
-    md:   "tablet",
-    lg:   "desktop",
+    md: "tablet",
+    lg: "desktop",
   })!;
 
   // se manca lo schema → {}, se manca la variante → {}

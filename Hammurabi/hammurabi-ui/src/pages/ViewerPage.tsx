@@ -56,8 +56,8 @@ const ViewerPage: React.FC = () => {
   const enterOrExitFullscreen = () => {
     const el = viewerContainerRef.current;
     if (!el) return;
-    if (!document.fullscreenElement) el.requestFullscreen?.().catch(() => {});
-    else document.exitFullscreen?.().catch(() => {});
+    if (!document.fullscreenElement) el.requestFullscreen?.().catch(() => { });
+    else document.exitFullscreen?.().catch(() => { });
   };
 
   const infos: [string, string][] = [

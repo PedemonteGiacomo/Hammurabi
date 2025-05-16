@@ -1,15 +1,27 @@
 {
   "variants": {
     "desktop": {
-      "showControls": ["slider","fpsInput","loopButton"],
-      "overlayCircles":  true
+      "showControls": [
+        "slider",
+        "fpsInput",
+        "loopButton"
+      ],
+      "overlayCircles": true
     },
     "tablet": {
-      "showControls": ["slider","fpsInput","loopButton"],
+      "showControls": [
+        "slider",
+        "fpsInput",
+        "loopButton"
+      ],
       "overlayCircles": true
     },
     "mobile": {
-      "showControls": ["slider","fpsInput","loopButton"],
+      "showControls": [
+        "slider",
+        "fpsInput",
+        "loopButton"
+      ],
       "overlayCircles": true
     }
   }
