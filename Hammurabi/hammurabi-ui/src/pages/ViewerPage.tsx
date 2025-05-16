@@ -9,60 +9,61 @@ import { SeriesInfo } from "../components/NestedDicomTable";
 import { useDeviceVariant } from "../hooks/useDeviceVariant";
 
 const ViewerPage: React.FC = () => {
-  const navigate        = useNavigate();
-  const location        = useLocation();
-  const selectedSeries  =
+  const navigate = useNavigate();
+  const location = useLocation();
+  const selectedSeries =
     (location.state as { series?: SeriesInfo })?.series ?? null;
 
   /* ---------- state ---------- */
-  const [metadata,        setMetadata]        = useState<any | null>(null);
-  const [showSidebar,     setShowSidebar]     = useState(true);
-  const [brightnessMode,  setBrightnessMode]  = useState(false);
+  const [metadata, setMetadata] = useState<any | null>(null);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [brightnessMode, setBrightnessMode] = useState(false);
   const [measurementMode, setMeasurementMode] = useState(false);
-  const [annotationMode,  setAnnotationMode]  = useState(false);
-  const [panMode,         setPanMode]         = useState(false);
+  const [annotationMode, setAnnotationMode] = useState(false);
+  const [panMode, setPanMode] = useState(false);
 
-  const viewerRef          = useRef<ViewerHandles>(null);
+  const viewerRef = useRef<ViewerHandles>(null);
   const viewerContainerRef = useRef<HTMLDivElement>(null);
 
   /* redirect se manca la serie */
-  useEffect(() => { if (!selectedSeries) navigate("/"); }, [selectedSeries, navigate]);
+  useEffect(() => {
+    if (!selectedSeries) navigate("/");
+  }, [selectedSeries, navigate]);
 
   /* device variant */
   const device = useDeviceVariant(); // "mobile" | "tablet" | "desktop"
 
-  /* -------- toggles -------- */
-  const toggleSidebar        = () => setShowSidebar(v => !v);
-  const toggleBrightnessMode = () => setBrightnessMode(v => !v);
-  const toggleMeasurementMode= () => { setMeasurementMode(v => !v); setPanMode(false); };
-  const toggleAnnotationMode = () => { setAnnotationMode(v => !v);  setPanMode(false); };
-  const togglePanMode        = () => {
-    setPanMode(v => !v);
-    setMeasurementMode(false);
-    setAnnotationMode(false);
-  };
+  /* -------- centralizza i toggles per un solo tool attivo -------- */
+  const activateMode = useCallback(
+    (
+      mode: "brightness" | "measurement" | "annotation" | "pan" | null
+    ) => {
+      setBrightnessMode(mode === "brightness");
+      setMeasurementMode(mode === "measurement");
+      setAnnotationMode(mode === "annotation");
+      setPanMode(mode === "pan");
+    },
+    []
+  );
 
   /* -------- reset -------- */
   const resetViewer = useCallback(() => {
-    setBrightnessMode(false);
-    setMeasurementMode(false);
-    setAnnotationMode(false);
-    setPanMode(false);
+    activateMode(null);
     viewerRef.current?.resetView();
-  }, []);
+  }, [activateMode]);
 
   /* ---- fullscreen ---- */
   const enterOrExitFullscreen = () => {
     const el = viewerContainerRef.current;
     if (!el) return;
-    if (!document.fullscreenElement) el.requestFullscreen?.().catch(()=>{});
-    else document.exitFullscreen?.().catch(()=>{});
+    if (!document.fullscreenElement) el.requestFullscreen?.().catch(() => {});
+    else document.exitFullscreen?.().catch(() => {});
   };
 
-  const infos: [string,string][] = [
+  const infos: [string, string][] = [
     ["Patient ID", metadata?.patientId ?? "—"],
-    ["Study",      metadata?.studyDescription ?? "—"],
-    ["Series",     metadata?.seriesDescription ?? "—"],
+    ["Study", metadata?.studyDescription ?? "—"],
+    ["Series", metadata?.seriesDescription ?? "—"],
   ];
 
   return (
@@ -87,11 +88,17 @@ const ViewerPage: React.FC = () => {
         annotationMode={annotationMode}
         panMode={panMode}
         /* toggles */
-        onToggleSidebar={toggleSidebar}
-        onToggleBrightnessMode={toggleBrightnessMode}
-        onToggleMeasurementMode={toggleMeasurementMode}
-        onToggleAnnotationMode={toggleAnnotationMode}
-        onTogglePanMode={togglePanMode}
+        onToggleSidebar={() => setShowSidebar((v) => !v)}
+        onToggleBrightnessMode={() =>
+          activateMode(brightnessMode ? null : "brightness")
+        }
+        onToggleMeasurementMode={() =>
+          activateMode(measurementMode ? null : "measurement")
+        }
+        onToggleAnnotationMode={() =>
+          activateMode(annotationMode ? null : "annotation")
+        }
+        onTogglePanMode={() => activateMode(panMode ? null : "pan")}
         /* azioni viewport */
         onZoomIn={() => viewerRef.current?.zoomIn()}
         onZoomOut={() => viewerRef.current?.zoomOut()}
@@ -107,7 +114,7 @@ const ViewerPage: React.FC = () => {
       <div
         className="viewer-main-row"
         style={{
-          flexDirection: device === "desktop" ? "row" : "column"
+          flexDirection: device === "desktop" ? "row" : "column",
         }}
       >
         <div

@@ -206,6 +206,10 @@ async function loadDicomImage(filePath: string) {
 /*  Types                                                                     */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/*  Types                                                                     */
+/* -------------------------------------------------------------------------- */
+
 export interface Metadata {
   patientId?: string;
   patientName?: string;
@@ -260,18 +264,20 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
       overlayCircles: boolean;
     }>("NewViewer");
 
-    const showSlider = variant.showControls?.includes("slider");
-    const showFpsInput = variant.showControls?.includes("fpsInput");
-    const showLoopBtn = variant.showControls?.includes("loopButton");
+    const showSlider = variant.showControls.includes("slider");
+    const showFpsInput = variant.showControls.includes("fpsInput");
+    const showLoopBtn = variant.showControls.includes("loopButton");
 
     const imageFilePaths = series?.imageFilePaths ?? [];
     const numberOfImages = series?.numberOfImages ?? 0;
 
     /* ───── viewport state ───── */
     const [idx, setIdx] = useState(0);
-    const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(() =>
-      Array(imageFilePaths.length).fill(null));
+    const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(
+      () => Array(imageFilePaths.length).fill(null)
+    );
     const [loadedCount, setLoaded] = useState(0);
+    const [allLoaded, setAllLoaded] = useState(false);
     const [isLooping, setIsLooping] = useState(false);
     const [fps, setFps] = useState(20);
 
@@ -308,85 +314,94 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     }, []);
 
     /* -------------------------------------------------------------------- */
-    /*  Pan‑mode: forza zoom≥1                                              */
+    /*  Pan-mode: forza zoom≥1 e ripristino esatto                          */
     /* -------------------------------------------------------------------- */
     useEffect(() => {
       if (panMode) {
-        if (zoomStep === 0) {
-          prevZoomWhenPan.current = 0;
+        prevZoomWhenPan.current = zoomStep;
+        if (zoomStep < 1) {
           setZoomStep(1);
         }
       } else {
-        if (prevZoomWhenPan.current === 0 && zoomStep === 1) {
-          setZoomStep(0);
-        }
+        setZoomStep(prevZoomWhenPan.current);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [panMode]);
+    }, [panMode, zoomStep]);
 
     /* -------------------------------------------------------------------- */
     /*  Imperative handles                                                  */
     /* -------------------------------------------------------------------- */
-    useImperativeHandle(ref, () => ({
-      zoomIn: () => setZoomStep(z => Math.min(z + 1, 10)),
-      zoomOut: () => setZoomStep(z => Math.max(z - 1, 0)),
-      brightnessUp: () => setBrightness(b => Math.min(b + 10, 100)),
-      brightnessDown: () => setBrightness(b => Math.max(b - 10, 0)),
-      flipHorizontal: () => setFlipH(f => !f),
-      flipVertical: () => setFlipV(f => !f),
-      resetView: () => {
-        setZoomStep(0); setPanFactor({ x: 0, y: 0 });
-        setBrightness(50); setContrast(50);
-        setFlipH(false); setFlipV(false);
-        setMeasurements([]); setAnnotations([]);
-        setTempPoint(null); setPreviewPoint(null);
-      }
-    }), []);
+    useImperativeHandle(
+      ref,
+      () => ({
+        zoomIn: () => setZoomStep((z) => Math.min(z + 1, 10)),
+        zoomOut: () => setZoomStep((z) => Math.max(z - 1, 0)),
+        brightnessUp: () => setBrightness((b) => Math.min(b + 10, 100)),
+        brightnessDown: () => setBrightness((b) => Math.max(b - 10, 0)),
+        flipHorizontal: () => setFlipH((f) => !f),
+        flipVertical: () => setFlipV((f) => !f),
+        resetView: () => {
+          setZoomStep(0);
+          setPanFactor({ x: 0, y: 0 });
+          setBrightness(50);
+          setContrast(50);
+          setFlipH(false);
+          setFlipV(false);
+          setMeasurements([]);
+          setAnnotations([]);
+          setTempPoint(null);
+          setPreviewPoint(null);
+          setIdx(0);
+          setAllLoaded(false);
+        },
+      }),
+      []
+    );
 
     /* -------------------------------------------------------------------- */
-    /*  Frame loading                                                       */
+    /*  Frame loading (tutte in parallelo, log e allLoaded)                */
     /* -------------------------------------------------------------------- */
-    const firstFrameUrl = imageFilePaths[0] ?? "";
     useEffect(() => {
-      if (!firstFrameUrl) return;
+      if (!series) return;
       let cancelled = false;
 
-      // reset stato
-      setIdx(0); setFrames(Array(imageFilePaths.length).fill(null));
-      setLoaded(0); setZoomStep(0); setPanFactor({ x: 0, y: 0 });
-      setBrightness(50); setContrast(50);
-      setFlipH(false); setFlipV(false);
-      setMeasurements([]); setAnnotations([]);
-      setTempPoint(null); setPreviewPoint(null);
+      // reset state
+      setIdx(0);
+      setFrames(Array(numberOfImages).fill(null));
+      setLoaded(0);
+      setAllLoaded(false);
 
       (async () => {
-        try {
-          const { image, metadata } = await loadDicomImage(firstFrameUrl);
-          if (cancelled) return;
-          setFrames(p => { const n = [...p]; n[0] = image; return n; });
-          setLoaded(1);
-          onMetadataExtracted?.(metadata);
-        } catch (err) { console.error("[NewViewer] first frame", err); }
+        const promises = imageFilePaths.map((path, i) =>
+          loadDicomImage(path)
+            .then(({ image, metadata }) => {
+              if (cancelled) return;
+              setFrames((f) => {
+                const n = [...f];
+                n[i] = image;
+                return n;
+              });
+              setLoaded((c) => {
+                const next = c + 1;
+                console.log(`[NewViewer] loaded ${next}/${numberOfImages}`);
+                // metadata solo per il primo
+                if (i === 0) onMetadataExtracted?.(metadata);
+                return next;
+              });
+            })
+            .catch((err) => console.error(`[NewViewer] frame ${i}`, err))
+        );
+
+        await Promise.all(promises);
+        if (!cancelled) {
+          console.log(`[NewViewer] ALL ${numberOfImages} images loaded`);
+          setAllLoaded(true);
+        }
       })();
 
-      return () => { cancelled = true; };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [firstFrameUrl]);
-
-    useEffect(() => {
-      if (!series || idx === 0 || frames[idx]) return;
-      let cancelled = false;
-      (async () => {
-        try {
-          const { image } = await loadDicomImage(imageFilePaths[idx]);
-          if (cancelled) return;
-          setFrames(p => { const n = [...p]; n[idx] = image; return n; });
-          setLoaded(c => c + 1);
-        } catch (err) { console.error(`[NewViewer] frame ${idx}`, err); }
-      })();
-      return () => { cancelled = true; };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [idx, frames[idx]]);
+      return () => {
+        cancelled = true;
+      };
+    }, [series, imageFilePaths, numberOfImages, onMetadataExtracted]);
 
     const displayed = useMemo(() => {
       if (!series) return null;
@@ -396,93 +411,153 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
     /* -------------------------------------------------------------------- */
     /*  Pointer handlers                                                    */
     /* -------------------------------------------------------------------- */
-    const handlePointerDown = useCallback((ev: ViewportPointerEvent) => {
-      if (!ev.isOverImage || ev.button !== 0) return;
-      if (panMode) return; // drag gestito nativamente
+    const handlePointerDown = useCallback(
+      (ev: ViewportPointerEvent) => {
+        if (!ev.isOverImage || ev.button !== 0) return;
+        if (panMode) return;
 
-      if (annotationMode) {
-        const { x, y } = ev.position;
-        const text = prompt("Annotation text?") ?? "";
-        setAnnotations(a => [...a, { id: Date.now(), x, y, text }]);
-        return;
-      }
-
-      if (measurementMode) {
-        if (!tempPoint) {
-          setTempPoint(ev.position);
-          setPreviewPoint(null);
-        } else {
-          setMeasurements(m => [...m, { p1: tempPoint, p2: ev.position }]);
-          setTempPoint(null); setPreviewPoint(null);
+        if (annotationMode) {
+          const { x, y } = ev.position;
+          const text = prompt("Annotation text?") ?? "";
+          setAnnotations((a) => [...a, { id: Date.now(), x, y, text }]);
+          return;
         }
-      }
-    }, [annotationMode, measurementMode, tempPoint, panMode]);
 
-    const handlePointerMove = useCallback((ev: ViewportPointerEvent) => {
-      if (measurementMode && tempPoint) {
-        setPreviewPoint(ev.position);
-      }
-    }, [measurementMode, tempPoint]);
+        if (measurementMode) {
+          if (!tempPoint) {
+            setTempPoint(ev.position);
+            setPreviewPoint(null);
+          } else {
+            setMeasurements((m) => [...m, { p1: tempPoint, p2: ev.position }]);
+            setTempPoint(null);
+            setPreviewPoint(null);
+          }
+        }
+      },
+      [annotationMode, measurementMode, tempPoint, panMode]
+    );
+
+    const handlePointerMove = useCallback(
+      (ev: ViewportPointerEvent) => {
+        if (measurementMode && tempPoint) {
+          setPreviewPoint(ev.position);
+        }
+      },
+      [measurementMode, tempPoint]
+    );
 
     /* -------------------------------------------------------------------- */
     /*  Overlays                                                            */
     /* -------------------------------------------------------------------- */
     const measurementOverlays = useMemo(() => {
-      if (!measurementMode) return null;
+      // mostro sempre tutte le misure già create
+      if (measurements.length === 0 && !(measurementMode && tempPoint && previewPoint))
+        return null;
+
       const items: React.ReactNode[] = [];
       const add = (m: Measurement, prev: boolean, i: number) => {
         const { p1, p2 } = m;
-        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        const dx = p2.x - p1.x,
+          dy = p2.y - p1.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const mid: { x: number; y: number } = { x: p1.x + dx / 2, y: p1.y + dy / 2 };
+        const mid: Point = { x: p1.x + dx / 2, y: p1.y + dy / 2 };
 
         items.push(
-          <Polyline key={`pl-${prev ? 'prev' : i}`}
+          <Polyline
+            key={`pl-${prev ? "prev" : i}`}
             points={`${p1.x},${p1.y} ${p2.x},${p2.y}`}
             stroke={prev ? "orange" : "#00eaff"}
             strokeWidth={prev ? 1.5 : 2}
-            strokeDasharray={prev ? "4 4" : undefined} />
+            strokeDasharray={prev ? "4 4" : undefined}
+          />
         );
-        items.push(<Circle key={`c1-${prev ? 'prev' : i}`} cx={p1.x} cy={p1.y} r={3}
-          fill={prev ? "orange" : "#00eaff"} />);
-        items.push(<Circle key={`c2-${prev ? 'prev' : i}`} cx={p2.x} cy={p2.y} r={3}
-          fill={prev ? "orange" : "#00eaff"} />);
-        items.push(<Text key={`t-${prev ? 'prev' : i}`} x={mid.x} y={mid.y - 8}
-          fontSize={12} fill={prev ? "orange" : "white"} textAnchor="middle">
-          {`${dist.toFixed(0)} px`}
-        </Text>);
+        items.push(
+          <Circle
+            key={`c1-${prev ? "prev" : i}`}
+            cx={p1.x}
+            cy={p1.y}
+            r={3}
+            fill={prev ? "orange" : "#00eaff"}
+          />
+        );
+        items.push(
+          <Circle
+            key={`c2-${prev ? "prev" : i}`}
+            cx={p2.x}
+            cy={p2.y}
+            r={3}
+            fill={prev ? "orange" : "#00eaff"}
+          />
+        );
+        items.push(
+          <Text
+            key={`t-${prev ? "prev" : i}`}
+            x={mid.x}
+            y={mid.y - 8}
+            fontSize={12}
+            fill={prev ? "orange" : "white"}
+            textAnchor="middle"
+          >{`${dist.toFixed(0)} px`}</Text>
+        );
       };
+
       measurements.forEach((m, i) => add(m, false, i));
       if (tempPoint && previewPoint) add({ p1: tempPoint, p2: previewPoint }, true, 0);
       return items;
     }, [measurementMode, measurements, tempPoint, previewPoint]);
 
-    const annotationOverlays = useMemo(() => (
-      annotationMode
-        ? annotations.flatMap(a => [
-          <Circle key={`ac-${a.id}`} cx={a.x} cy={a.y} r={5} fill="yellow" />,
-          <Text key={`at-${a.id}`} x={a.x + 8} y={a.y - 8}
-            fontSize={12} fill="yellow">{a.text}</Text>,
-        ])
-        : null
-    ), [annotationMode, annotations]);
+    const annotationOverlays = useMemo(
+      () =>
+        annotationMode
+          ? annotations.flatMap((a) => [
+              <Circle key={`ac-${a.id}`} cx={a.x} cy={a.y} r={5} fill="yellow" />,
+              <Text
+                key={`at-${a.id}`}
+                x={a.x + 8}
+                y={a.y - 8}
+                fontSize={12}
+                fill="yellow"
+              >
+                {a.text}
+              </Text>,
+            ])
+          : null,
+      [annotationMode, annotations]
+    );
 
     /* -------------------------------------------------------------------- */
     /*  Render                                                              */
     /* -------------------------------------------------------------------- */
-    if (!series) return <div className="dicom-viewer-container">Seleziona una serie…</div>;
-    if (!displayed) return <div className="dicom-viewer-container">Caricamento immagini…</div>;
+    if (!series)
+      return (
+        <div className="dicom-viewer-container">Seleziona una serie…</div>
+      );
+    if (!displayed)
+      return (
+        <div className="dicom-viewer-container">Caricamento immagini…</div>
+      );
 
     return (
-      <div ref={containerRef} className="dicom-viewer-container"
-        style={{ display: "flex", flexDirection: "column", height: "100%", overscrollBehavior: "contain" }}>
+      <div
+        ref={containerRef}
+        className="dicom-viewer-container"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overscrollBehavior: "contain",
+        }}
+      >
         <div style={{ flex: 1, position: "relative" }}>
           <FrameViewport
             ref={viewportRef}
             frame={displayed}
             cursor={{
-              imageArea: panMode ? "grab"
-                : (annotationMode || measurementMode) ? "crosshair" : "default",
+              imageArea: panMode
+                ? "grab"
+                : annotationMode || measurementMode
+                ? "crosshair"
+                : "default",
               viewportArea: panMode ? "grab" : "default",
             }}
             zoomStep={zoomStep}
@@ -499,8 +574,11 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             onPointerMove={handlePointerMove}
           >
             {variant.overlayCircles && (
-              <Circle cx={displayed.naturalWidth / 2}
-                cy={displayed.naturalHeight / 2} r={4} />
+              <Circle
+                cx={displayed.naturalWidth / 2}
+                cy={displayed.naturalHeight / 2}
+                r={4}
+              />
             )}
             {measurementOverlays}
             {annotationOverlays}
@@ -512,17 +590,27 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             frameIndex={idx}
             numberOfFrames={numberOfImages}
             numberOfAvailableFrames={loadedCount}
-            isLooping={showLoopBtn ? isLooping : false}
+            isLooping={showLoopBtn ? isLooping && allLoaded : false}
             frameRate={showFpsInput ? fps : 20}
             hasArrowButtons
-            onFrameIndexChange={n => setIdx(Math.max(0, Math.min(n, numberOfImages - 1)))}
-            onIsLoopingChange={showLoopBtn ? setIsLooping : undefined}
-            onFrameRateChange={showFpsInput ? setFps : undefined}
+            onFrameIndexChange={(n) =>
+              setIdx(Math.max(0, Math.min(n, numberOfImages - 1)))
+            }
+            onIsLoopingChange={
+              showLoopBtn
+                ? (looping: boolean) => setIsLooping(looping)
+                : undefined
+            }
+            onFrameRateChange={
+              showFpsInput
+                ? (rate: number) => setFps(rate)
+                : undefined
+            }
           />
         )}
       </div>
     );
-  },
+  }
 );
 
 export default NewViewer;
