@@ -1,24 +1,40 @@
 // src/hooks/useComponentVariant.ts
-import { useDeviceVariant }   from "./useDeviceVariant";
+import { useBreakpointValue } from "@chakra-ui/react";
+import type { Device } from "./useDeviceVariant";
 
-/*  Mappa dei JSON che descrivono le varianti.
- *  Se domani aggiungi un altro componente basta importarlo qui. */
-import newViewerSchema   from "../schema/components/NewViewer.schema.json";
-import sidebarSchema     from "../schema/components/Sidebar.schema.json";
-import topBarSchema      from "../schema/components/TopBar.schema.json";
-import viewerTbSchema    from "../schema/components/ViewerToolbar.schema.json";
-import studyListSchema   from "../schema/components/StudyList.schema.json";
+/* ------------------------------------------------------------------ */
+/* 1. build-time discovery di tutti i JSON in schema/components        */
+/*    false  = NON entra nelle sub-directory                           */
+/*    /\.schema\.json$/ = solo quei file                               */
+/* ------------------------------------------------------------------ */
+const schemaCtx = require.context(
+  "../schema/components",  // cartella
+  false,                   // no sub-folder
+  /\.schema\.json$/        // regex
+);
 
-const SCHEMAS: Record<string, any> = {
-  NewViewer:      newViewerSchema,
-  Sidebar:        sidebarSchema,
-  TopBar:         topBarSchema,
-  ViewerToolbar:  viewerTbSchema,
-  StudyList:      studyListSchema,
-};
+/* ------------------------------------------------------------------ */
+/* 2. Traduce "./NewViewer.schema.json" → "NewViewer": schemaObject    */
+/* ------------------------------------------------------------------ */
+const SCHEMAS: Record<string, any> = {};
 
-export function useComponentVariant<T = any>(component: keyof typeof SCHEMAS): T {
-  const device = useDeviceVariant();                 // "mobile" | "tablet" | "desktop"
-  const schema = SCHEMAS[component];
-  return (schema?.variants?.[device] ?? {}) as T;    // fallback → {}
+schemaCtx.keys().forEach((k) => {
+  const name = k.replace("./", "").replace(".schema.json", ""); // "NewViewer"
+  // quando CRA compila JSON li esporta sia come default sia come modulo
+  const schema = (schemaCtx(k) as any).default ?? schemaCtx(k);
+  SCHEMAS[name] = schema;
+});
+
+/* ------------------------------------------------------------------ */
+/* 3. Hook vero e proprio                                              */
+/* ------------------------------------------------------------------ */
+export function useComponentVariant<T = unknown>(component: string): T {
+  const device = useBreakpointValue<Device>({
+    base: "mobile",
+    md:   "tablet",
+    lg:   "desktop",
+  })!;
+
+  // se manca lo schema → {}, se manca la variante → {}
+  return (SCHEMAS[component]?.variants?.[device] ?? {}) as T;
 }
