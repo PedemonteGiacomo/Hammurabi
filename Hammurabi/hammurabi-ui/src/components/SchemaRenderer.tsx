@@ -7,12 +7,13 @@ import { useDeviceVariant } from "../hooks/useDeviceVariant";
 // your low-level components go here if you ever still need them…
 import SelectionPage from "../pages/SelectionPage";
 import ViewerPage    from "../pages/ViewerPage";
+import HelloPage   from "../pages/HelloPage";
 
 // add them to the registry
 const registry: Record<string, React.FC<any>> = {
   SelectionPage,
   ViewerPage,
-  // …if you still use atomic components elsewhere, list them too
+  HelloPage
 };
 
 export const SchemaRenderer: React.FC = () => {

@@ -11,6 +11,12 @@
       "regions": {
         "main": { "component": "ViewerPage" }
       }
+    },
+    "hello": {
+      "path": "/hello",
+      "regions": {
+        "main": { "component": "HelloPage" }
+      }
     }
   }
 }
