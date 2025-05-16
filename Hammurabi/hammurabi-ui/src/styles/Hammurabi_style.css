@@ -6,6 +6,11 @@
   src: url('/public/Aptos/Aptos.ttf') format('truetype');
 }
 
+:root{
+  /* Somma delle tre barre fisse: 60 (TopBar) + 50 (InfoRow) + 60 (Toolbar) */
+  --header-stack: 174px;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -193,17 +198,17 @@ margin-right:1rem;
 }
 
 /* — Main Viewer + Sidebar — */
-.viewer-main-row {
-  display: flex;
-  flex: 1;
-  gap: 1rem;
-  padding: 1rem;
+.viewer-main-row{
+  display:flex; flex-direction:row;
+  gap:1rem; padding:1rem;
 }
 .viewer-container.with-sidebar {
   flex: 2;
+  height: calc(112.5vh - var(--header-stack) + 0.1rem);
 }
 .viewer-container.full-width {
   flex: 1;
+  height: calc(112.5vh - var(--header-stack));
 }
 .dicom-viewer-container {
   display: flex;
