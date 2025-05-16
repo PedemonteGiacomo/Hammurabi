@@ -28,6 +28,13 @@ const HelloWidget: React.FC<HelloWidgetProps> = ({ __override__ }) => {
   /* 🎯 base values coming from the compiled JSON schema on disk */
   const base = useComponentVariant<Variant>("HelloWidget");
 
+  const defaults: Variant = {
+    background: "#0078D4",
+    text:       "#ffffff",
+    padding:    "1rem",
+    borderRadius: 4,
+};
+
   /* 🔀 figure out what the live editor is sending us */
   const live: Partial<Variant> | undefined = useMemo(() => {
     if (!__override__) return undefined;
@@ -45,6 +52,7 @@ const HelloWidget: React.FC<HelloWidgetProps> = ({ __override__ }) => {
 
   /* 🧬 merge: live > base > defaults */
   const { background, text, padding, borderRadius } = {
+    ...defaults,
     ...base,
     ...live,
   };
