@@ -203,16 +203,9 @@ export const FrameViewport: React.FC<Props> = memo(
     const cbStartRef = useRef<[Point, number, number]>(undefined);
     const isMultiTouchSequence = useRef<boolean>(false);
 
-    const [boundingRect, setBoundingRect] = useState<DOMRect>({
-      left: 0,
-      top: 0,
-      width: 0,
+    const [viewportSize, setViewportSize] = useState<{width: number; height: number}>({
+      width : 0,
       height: 0,
-      bottom: 0,
-      right: 0,
-      x: 0,
-      y: 0,
-      toJSON: noop,
     });
 
     useLayoutEffect(() => {
@@ -234,7 +227,7 @@ export const FrameViewport: React.FC<Props> = memo(
     }, [frame, flipHorizontal, flipVertical]);
 
     const { zoomPanMatrix, viewportMatrix, fitImageMatrix } = useMatrices(
-      boundingRect,
+      viewportSize,
       { width: frame.naturalWidth, height: frame.naturalHeight },
       zoomStep,
       panFactor,
@@ -245,11 +238,12 @@ export const FrameViewport: React.FC<Props> = memo(
       const container = canvas?.parentElement;
       if (!container) throw Error("Container is null or undefined.");
 
-      setBoundingRect(container.getBoundingClientRect());
+      const { width, height } = container.getBoundingClientRect();
+      setViewportSize({ width, height });
     }, []);
 
     useImperativeHandle(ref, () => {
-      if (boundingRect.width <= 0 || boundingRect.height <= 0) return undefined;
+      if (viewportSize.width <= 0 || viewportSize.height <= 0) return undefined;
 
       return {
         focusRegion(topLeft: Point, bottomRight: Point) {
@@ -266,8 +260,8 @@ export const FrameViewport: React.FC<Props> = memo(
           const regionHeightScreen = bottomRightScreen.y - topLeftScreen.y;
           const regionWidthScreen = bottomRightScreen.x - topLeftScreen.x;
 
-          const wRatio = boundingRect.width / regionWidthScreen;
-          const hRatio = boundingRect.height / regionHeightScreen;
+          const wRatio = viewportSize.width / regionWidthScreen;
+          const hRatio = viewportSize.height / regionHeightScreen;
           const scaleFactor = wRatio < hRatio ? wRatio : hRatio;
 
           const maxScale =
@@ -283,8 +277,8 @@ export const FrameViewport: React.FC<Props> = memo(
 
           const regionCenterScreen = applyToPoint(matrix, regionCenter);
           const viewportCenterScreen = {
-            x: boundingRect.width / 2,
-            y: boundingRect.height / 2,
+            x: viewportSize.width / 2,
+            y: viewportSize.height / 2,
           };
 
           const offsetX = viewportCenterScreen.x - regionCenterScreen.x;
@@ -310,43 +304,31 @@ export const FrameViewport: React.FC<Props> = memo(
 
       const observerCallback = () => {
         const rect = container.getBoundingClientRect();
-        if (
-          rect.width !== boundingRect.width ||
-          rect.height !== boundingRect.height ||
-          rect.left !== boundingRect.left ||
-          rect.top !== boundingRect.top
-        ) {
-          // Update immediately after the current loop has finished
-          // to prevent an error about a potential infinite depth loop
-          // which is actually prevented by the if statement here.
-          setTimeout(() => {
-            if (isMounted) setBoundingRect(rect);
-          });
-        }
+          if (
+            rect.width !== viewportSize.width ||
+            rect.height !== viewportSize.height
+          ) {
+            setViewportSize({ width: rect.width, height: rect.height });
+          }
       };
 
       const resizeObserver =
         "ResizeObserver" in window
           ? new ResizeObserver(observerCallback)
           : null;
-      const intersectionObserver =
-        "IntersectionObserver" in window
-          ? new IntersectionObserver(observerCallback)
-          : null;
 
       resizeObserver?.observe(container);
-      intersectionObserver?.observe(container);
       return () => {
         resizeObserver?.disconnect();
-        intersectionObserver?.disconnect();
         isMounted = false;
       };
-    }, [boundingRect]);
+    }, [viewportSize]);
 
     function getImagePosition(
       ev: React.MouseEvent | React.Touch | MouseEvent,
     ): Point {
-      const { left, top } = boundingRect;
+      const rect = canvasRef.current!.parentElement!.getBoundingClientRect();
+      const { left, top } = rect;
 
       const x = ev.clientX - left;
       const y = ev.clientY - top;

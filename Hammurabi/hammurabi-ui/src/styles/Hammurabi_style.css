@@ -1,434 +1,326 @@
-/* src/styles/Hammurabi_style.css */
-
+/* ==========================================================================
+   FONT & RESET
+   ========================================================================== */
 @font-face {
   font-family: 'Aptos';
   src: url('/public/Aptos/Aptos.ttf') format('truetype');
 }
 
-
 body {
-  background-color: #0d1117 !important;
   margin: 0;
   padding: 0;
+  background-color: #0d1117 !important;
   color: #ffffff;
   font-family: 'Aptos', sans-serif;
+  overflow: hidden; /* pagina stessa non scrolla */
 }
 
-/* ======================================== */
-/* === Top Bar Section (Esaote & User) ==== */
-/* ======================================== */
+/* ==========================================================================
+   TOP BAR (Logo, Versione, Utente)
+   ========================================================================== */
+.topbar-container {
+background-color: #c2181e;
+min-height: 60px !important;
+height: auto !important;
+display: flex;
+align-items: center;
+padding: 0 16px;
+}
 
 .topbar-content {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  width: 100%;
+display: flex;
+align-items: center;
+width: 100%;
 }
 
 .topbar-logo {
-  height: 36px;
-  margin-left: 16px;
+height: 36px;
+margin-right: 16px;
 }
 
 .topbar-spacer {
-  flex: 1;
+flex: 1;
 }
 
 .topbar-user-icon {
-  height: 32px;
-  margin-right: 16px;
+height: 32px;
+cursor: pointer;
 }
 
-/* ======================================== */
-/* === Selection Page: Study List Styles === */
-/* ======================================== */
+.topbar-dropdown {
+position: absolute;
+right: 0;
+top: 100%;
+background-color: #fbd9dc; /* pink background \*/
+border-radius: 8px;
+padding: 1rem;
+z-index: 10d1117;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+min-width: 200px;
+}
+
+.logout-btn {
+background-color: #464646;
+color: #fff;
+border: none;
+border-radius: 4px;
+padding: 0.4rem 0.8rem;
+cursor: pointer;
+font-size: 0.9rem;
+margin-top: 0.5rem;
+}
+
+.build-badge{
+font-size:.75rem;
+color:#bbb;
+margin-right:1rem;
+}
+
+/* ==========================================================================
+   SELECTION PAGE / STUDY LIST
+   ========================================================================== */
 .selection-page-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #0d1117;    /* pure black */
+  background-color: #0d1117;
 }
-
 .study-list-wrapper {
   width: 90%;
   margin: 1rem auto;
-  background-color: #0d1117;
 }
-
 .study-list-header {
   background-color: #c2181e;
   padding: 1rem;
-  text-align: left;
-}
-
-.study-list-header h2 {
-  margin: 0;
   color: #fff;
+  margin-bottom: 15px;
 }
-
-.nested-dicom-table-container {
-  margin: 1rem 0;
-}
-
-/* Table styles for the study list */
 .study-list-table {
   width: 100%;
   border-collapse: collapse;
   background-color: #1c1c1c;
   color: #fff;
 }
-
-.study-list-table thead tr {
-  background-color: #c2181e;
-  color: white;
-}
-
 .study-list-table th,
 .study-list-table td {
-  padding: 0.75rem;
+  padding: .75rem;
   border: 1px solid #333;
 }
-
+.study-list-table thead tr {
+  background-color: #c2181e;
+}
 .study-list-table tbody tr {
   background-color: #222;
 }
-
 .study-list-table tbody tr:hover {
   background-color: #2f2f2f;
 }
-
-/* and since you sometimes have inline text/buttons/buttons that might get
-   link or button defaults, you can also do: */
 .study-list-table a,
 .study-list-table button {
   color: inherit;
 }
-
-/* Optional search panel (InputsPanel) */
 .inputs-panel {
   margin: 1rem 0;
 }
-
 .input-column label {
-  color: white;
+  color: #fff;
 }
-
 .input-column .form-control {
   background-color: #333;
-  color: white;
+  color: #fff;
   border: 1px solid #555;
 }
 
-/* ======================================== */
-/* === ViewerPage CSS === */
-/* ======================================== */
+/* ==========================================================================
+   VIEWER PAGE LAYOUT
+   ========================================================================== */
 .viewer-page-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #0d1117;    /* pure black */
+  background-color: #0d1117;
+  overflow-y: scroll;
 }
 
-/* Info row for Patient/Study/Series/Instance */
+/* — Info Row — */
 .viewer-info-row {
-  background-color: #111;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 0.75rem 1rem;
   gap: 2rem;
+  padding: .75rem 1rem;
+  background-color: #111;
 }
-
-/* Each info block for label/value */
 .viewer-info-block {
   display: flex;
   flex-direction: column;
   min-width: 120px;
 }
-
 .info-label {
-  font-weight: bold;
-  font-size: 0.85rem;
-  margin-bottom: 0.25rem;
+  font-size: .85rem;
   color: #bbb;
+  margin-bottom: .25rem;
+  font-weight: bold;
 }
-
 .info-value {
   font-size: 1rem;
   color: #fff;
 }
 
-/* Toolbar row with icons */
+/* — Toolbar — */
 .viewer-toolbar-container {
-  background-color: #c2181e;
-  padding: 0.5rem 1rem;
-}
-
-
-.toolbar-list {
-  list-style: none;
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  background-color: #c2181e;
+  padding: .5rem 1rem;
+}
+.toolbar-list {
+  display: flex;
+  list-style: none;
   margin: 0;
   padding: 0;
 }
-
 .toolbar-item {
   margin-right: 1rem;
+  cursor: pointer;
 }
-
 .toolbar-item img {
   height: 32px;
-  width: auto;
 }
-
-/* Main viewer row (viewer + sidebar) with limited height */
-.viewer-main-row {
-  display: flex;
-  flex-direction: row;
-  flex: 1 1 auto; /* Allow it to grow and shrink */
-  padding: 1rem;
-  gap: 1rem;
-  color: black;
-}
-
-/* This modifier limits the height to prevent stretching */
-.viewer-main-row.limited-height {
-  max-height: 560px; /* Adjust this value to match your design */
-  overflow: hidden;
-}
-
-/* DICOM viewer container (left side) */
-.dicom-viewer-container {
-  display: flex;
-  flex-direction: column;
-  background-color: black;
-  flex: 2;
-  border: 2px solid #c2181e;
+.toolbar-item.active {
+  outline: 2px solid #fff;
   border-radius: 4px;
-  height: 100%;
 }
-
-/* Fixed height for the Cornerstone viewport area */
-.dicom-viewport {
-  width: 100%;
-  height: 400px; /* Adjust this value to match your design (300-500px) */
-  background-color: black;
-}
-
-/* Navigation controls for image traversal */
-.viewer-navigation {
-  margin-top: 0.5rem;
-  text-align: center;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Icon button styling for viewer controls */
-.icon-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-}
-
-/* Force all navigation icons to white */
-.viewer-navigation .icon-button img {
-  width: 24px;
-  height: auto;
-  filter: brightness(0) saturate(100%) invert(100%);
-}
-
-.icon-button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.viewer-nav-text {
-  color: yellow;
-  font-weight: bold;
-  font-size: 1rem;
-}
-
-/* Sidebar (right side) */
-.viewer-sidebar {
-  background-color: #1c1c1c;
-  flex: 1;
-  padding: 1rem;
-  border: 2px solid #c2181e;
-  border-radius: 4px;
-  box-sizing:border-box;   /* => padding + border fanno parte della larghezza */
-
-}
-
-.sidebar-title {
-  margin: 0 0 1rem 0;
-  font-size: 1.25rem;
-  color: #fff;
-}
-
-/* DICOM metadata panel within the sidebar */
-.dicom-metadata-panel {
-  background-color: #fbd9dc;
-  padding: 1rem;
-  border-radius: 4px;
-  width:100%;                /* occupa tutta la larghezza disponibile                            */
-  overflow-x:hidden;         /* niente barra orizzontale                                         */
-  word-break:break-all; 
-}
-
-.dicom-metadata-panel .metadata-checkbox-row {
-  gap: 0.25rem;
-  font-size: 0.85rem;
-}
-.dicom-metadata-panel .form-check-input {
-  transform: scale(0.8);
-  margin-right: 0.25rem;
-}
-
-.metadata-checkbox-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-}
-
-.metadata-content {
-  margin-top: 1rem;
-}
-
-/* New styles to adjust the viewer and sidebar containers */
-.viewer-main-row {
-  display: flex;
-  flex-direction: row;
-  /* align-items: stretch;  Makes all flex children adopt the same height */
-  gap: 1rem;
-}
-
-/* When a sidebar is displayed */
-.viewer-container.with-sidebar {
-  flex: 2 1 auto; /* Allow it to grow and shrink */
-  overflow: hidden;
-}
-
-/* When no sidebar is visible, the viewer takes full width */
-.viewer-container.full-width {
-  flex: 1 1 auto;
-  overflow: hidden;
-}
-
-
-/* 5) breakpoint per mobile/tablet: dai un’altezza percentuale al viewer */
-@media (max-width: 991px) {
-  .viewer-container {
-    min-height: 50vh;
-  }
-}
-
-.sidebar-container {
-  /* If the parent already controls the height (via flex: 1), these will automatically match */
-  flex: 1;
-  /* Optionally, force 100% height in case some inner element does not inherit flex size */
-  height: 100%;
-  width: 100%;
-  display: flex;
-}
-
-/* Make the sidebar (the actual panel inside the sidebar container) fill its container */
-.viewer-sidebar {
-  flex: 1;
-  height: 100%;
-  overflow-y: auto;  /* Allow vertical scrolling if the metadata content overflows */
-  width: 100%; 
-}
-
-/* Ensure the metadata panel itself fills the sidebar */
-.dicom-metadata-panel {
-  height: 100%;
-  width: 100%;  
-}
-
-
-/* Top Bar Styles */
-.topbar-container {
-  background-color: #c2181e;
-  min-height: 60px !important;
-  height: auto !important;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-}
-
-.topbar-content {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.topbar-logo {
-  height: 36px;
-  margin-right: 16px;
-}
-
-.topbar-spacer {
-  flex: 1;
-}
-
-.topbar-user-icon {
-  height: 32px;
-  cursor: pointer;
-}
-
-/* Dropdown Styles */
-.topbar-dropdown {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background-color: #fbd9dc; /* pink background */
-  border-radius: 8px;
-  padding: 1rem;
-  z-index: 10d1117;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  min-width: 200px;
-}
-
-.logout-btn {
-  background-color: #464646;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 0.4rem 0.8rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-}
-
-/* Versioning and Build Badge */
-.build-badge{
-  font-size:.75rem;
-  color:#bbb;
-  margin-right:1rem;
-}
-
-/* Evidenzia il brightness-mode quando è attivo */
-.viewer-toolbar-container .toolbar-item.active img {
+.toolbar-item.active img {
   filter: brightness(200%) invert(100%);
 }
 
-/* oppure semplicemente un bordo */
-.viewer-toolbar-container .toolbar-item.active {
-  outline: 2px solid white;
+/* — Main Viewer + Sidebar — */
+.viewer-main-row {
+  display: flex;
+  flex: 1;
+  gap: 1rem;
+  padding: 1rem;
+}
+.viewer-container.with-sidebar {
+  flex: 2;
+}
+.viewer-container.full-width {
+  flex: 1;
+}
+.dicom-viewer-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: #000;
+  border: 2px solid #c2181e;
   border-radius: 4px;
+  overflow: hidden;
+  height: 100%;
 }
 
-/* ======================================== */
-/* === CSS for input commands === */
-.viewer-main-row input[type="text"],
-.viewer-main-row input[type="number"],
-.viewer-main-row input[type="search"]{
-  color:#0d1117 !important;
-  background-color:#fff !important;
+/* — Viewport Area — */
+.dicom-viewport {
+  width: 100%;
+  height: 400px; /* regola se vuoi 300–500px */
+  background-color: #000;
+}
+
+/* — Navigation Controls — */
+.viewer-navigation {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+  margin-top: .5rem;
+}
+.icon-button {
+  background: none;
+  border: none;
+  padding: .5rem;
+  cursor: pointer;
+}
+.viewer-navigation .icon-button img {
+  width: 24px;
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+.icon-button:disabled {
+  opacity: .3;
+  cursor: not-allowed;
+}
+.viewer-nav-text {
+  color: yellow;
+  font-weight: bold;
+}
+
+/* ==========================================================================
+   SIDEBAR & DICOM METADATA
+   ========================================================================== */
+.sidebar-container {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+.viewer-sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 1rem;
+  background-color: #1c1c1c;
+  border: 2px solid #c2181e;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+.sidebar-title {
+  margin: 0 0 1rem;
+  color: #fff;
+  font-size: 1.25rem;
+}
+/* — Metadata Panel — */
+.dicom-metadata-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background-color: #fbd9dc;
+  border-radius: 4px;
+  padding: 1rem;
+  overflow-y: auto;
+  width: 100%;
+  word-break: break-all;
+  overflow-wrap: anywhere;     /* fallback più moderno */
+}
+/* Checkbox list in griglia compatta */
+/* .dicom-metadata-panel .metadata-checkbox-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: .25rem .5rem;
+  margin-bottom: 1rem;
+} */
+/* .dicom-metadata-panel .form-check {
+  display: flex;
+  align-items: center;
+  margin: 0;
+} */
+.dicom-metadata-panel .form-check-input {
+  transform: scale(0.8);
+  margin-right: .25rem;
+}
+.dicom-metadata-panel .form-check-label {
+  font-size: .85rem;
+}
+.metadata-content {
+  flex: 1;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+@media (max-width: 991px) {
+  .viewer-container {
+    min-height: 50vh;
+    max-height: 70vh;
+  }
+  body {
+    overflow: auto; /* permetto scroll su mobile se necessario */
+  }
 }
