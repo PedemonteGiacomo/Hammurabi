@@ -28,6 +28,7 @@ import {
   Point,
   ViewportPointerEvent,
 } from "../newViewport/types";
+import { noop } from "framer-motion";
 
 /* -------------------------------------------------------------------------- */
 /*  Helpers                                                                   */
@@ -518,7 +519,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
             flipHorizontal={flipH}
             flipVertical={flipV}
             onZoomStepChange={setZoomStep}
-            onPanFactorChange={setPanFactor}
+            onPanFactorChange={brightnessMode ? noop : setPanFactor}
             onBrightnessChange={brightnessMode ? setBrightness : undefined}
             onContrastChange={brightnessMode ? setContrast : undefined}
             onPointerDown={handlePointerDown}
