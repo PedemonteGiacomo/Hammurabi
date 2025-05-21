@@ -6,4 +6,4 @@ Note:
 demo try: 
 - inizio alle 16:45
 - tempo di completamento update: 3m 58s
-- tempo di aggiornamento necessario 11 minuti
+- tempo di aggiornamento necessario 11 minuti, anche 12
