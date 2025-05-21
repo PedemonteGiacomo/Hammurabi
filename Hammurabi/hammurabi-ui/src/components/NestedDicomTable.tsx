@@ -28,9 +28,10 @@ export interface PatientInfo {
  */
 interface NestedDicomTableProps {
   onSelectSeries: (series: SeriesInfo) => void;
+  onSelectSeries2: (series: SeriesInfo) => void;
 }
 
-const NestedDicomTable: React.FC<NestedDicomTableProps> = ({ onSelectSeries }) => {
+const NestedDicomTable: React.FC<NestedDicomTableProps> = ({ onSelectSeries, onSelectSeries2 }) => {
   // Control which patients/studies are expanded
   const [expandedPatients, setExpandedPatients] = useState<string[]>([]);
   const [expandedStudies, setExpandedStudies] = useState<string[]>([]);
@@ -118,7 +119,7 @@ const NestedDicomTable: React.FC<NestedDicomTableProps> = ({ onSelectSeries }) =
                               <td>
                                 <em>Description:</em> {series.seriesDescription} |{" "}
                                 <em>Images:</em> {series.numberOfImages}{" "}
-                                <button
+                                + <button
                                   className="btn btn-sm btn-primary"
                                   style={{ marginLeft: "1rem" }}
                                   onClick={(e) => {
@@ -128,6 +129,17 @@ const NestedDicomTable: React.FC<NestedDicomTableProps> = ({ onSelectSeries }) =
                                 >
                                   View
                                 </button>
+                                {onSelectSeries2 && (
+                                  <button
+                                    className="btn btn-sm btn-secondary"
+                                    style={{ marginLeft: "0.5rem" }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onSelectSeries2!(series);
+                                    }}
+                                  >
+                                    View 2
+                                  </button>)}
                               </td>
                             </tr>
                           ))}

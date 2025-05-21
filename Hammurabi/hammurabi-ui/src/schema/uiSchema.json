@@ -23,6 +23,12 @@
           "component": "HelloPage"
         }
       }
-    }
+    },
+    "viewer2": {
+      "path": "/viewer2",
+      "regions": {
+         "main": { "component": "Viewer2Page" }
+     }
+   }
   }
 }

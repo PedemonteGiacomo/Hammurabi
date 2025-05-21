@@ -15,6 +15,10 @@ const SelectionPage: React.FC = () => {
     navigate('/viewer', { state: { series } });
   };
 
+  const handleSelectSeries2 = (series: SeriesInfo) => {
+    navigate('/viewer2', { state: { series } });
+  };
+
   return (
     <div className="selection-page-container">
       <TopBar />
@@ -22,7 +26,7 @@ const SelectionPage: React.FC = () => {
         <div className="study-list-header">
           <h2>Studies</h2>
         </div>
-        <NestedDicomTable onSelectSeries={handleSelectSeries} />
+        <NestedDicomTable onSelectSeries={handleSelectSeries} onSelectSeries2={handleSelectSeries2} />
       </div>
     </div>
   );

@@ -8,12 +8,14 @@ import { useDeviceVariant } from "../hooks/useDeviceVariant";
 import SelectionPage from "../pages/SelectionPage";
 import ViewerPage from "../pages/ViewerPage";
 import HelloPage from "../pages/HelloPage";
+import Viewer2Page from "../pages/Viewer2Page";
 
 // add them to the registry
-const registry: Record<string, React.FC<any>> = {
+var registry: Record<string, React.FC<any>> = {
   SelectionPage,
   ViewerPage,
-  HelloPage
+  HelloPage,
+  Viewer2Page,
 };
 
 export const SchemaRenderer: React.FC = () => {

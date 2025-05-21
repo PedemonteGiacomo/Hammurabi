@@ -6,6 +6,7 @@ import { AuthProvider } from 'react-oidc-context';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Hammurabi_style.css';
 import App from './App';
+import reportWebVitals from './reportWebVitals';
 
 // 👇 import your custom theme
 const cognitoAuthConfig = {
@@ -27,3 +28,6 @@ root.render(
     </ChakraProvider>
   </AuthProvider>
 );
+
+// ...dopo il render di ReactDOM...
+reportWebVitals(console.log);
