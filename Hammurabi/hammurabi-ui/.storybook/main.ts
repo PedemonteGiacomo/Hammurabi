@@ -1,23 +1,23 @@
-// .storybook/main.js
 import type { StorybookConfig } from '@storybook/react-webpack5';
 
 const config: StorybookConfig = {
-  stories: [
-    "../src/components/**/*.stories.@(ts|tsx|js|jsx|mdx)",
-    "../src/pages/**/*.stories.@(ts|tsx|js|jsx|mdx)"
+  "stories": [
+    "../src/**/*.mdx",
+    "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"
   ],
-  addons: [
+  "addons": [
     "@storybook/addon-essentials",
     "@storybook/preset-create-react-app",
-    "@storybook/addon-interactions"
+    "@storybook/addon-onboarding",
+    "@storybook/addon-interactions",
+    '@storybook/addon-themes',
   ],
-  framework: {
-    name: "@storybook/react-webpack5",
-    options: {}
+  "framework": {
+    "name": "@storybook/react-webpack5",
+    "options": {}
   },
-  staticDirs: [
-    "../public"    // così asset come /assets/*.svg/jpg saranno serviti
+  "staticDirs": [
+    "../public"
   ]
 };
-
 export default config;

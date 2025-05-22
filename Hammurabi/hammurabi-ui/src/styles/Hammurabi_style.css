@@ -245,6 +245,7 @@ body {
   border-radius: 4px;
   overflow: hidden;
   height: 100%;
+  color: red;
 }
 
 /* — Viewport Area — */
@@ -328,18 +329,6 @@ body {
   /* fallback più moderno */
 }
 
-/* Checkbox list in griglia compatta */
-/* .dicom-metadata-panel .metadata-checkbox-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: .25rem .5rem;
-  margin-bottom: 1rem;
-} */
-/* .dicom-metadata-panel .form-check {
-  display: flex;
-  align-items: center;
-  margin: 0;
-} */
 .dicom-metadata-panel .form-check-input {
   transform: scale(0.8);
   margin-right: .25rem;
@@ -368,4 +357,63 @@ body {
     overflow: auto;
     /* permetto scroll su mobile se necessario */
   }
+}
+
+/* forza testo nero e sfondo bianco negli input del Navigation */
+.viewer-navigation input {
+  background-color: #fff !important;
+  color: #000 !important;
+  border: 1px solid #555 !important;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 4px !important;
+}
+
+.dicom-metadata-panel .metadata-checkbox-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: .25rem .5rem;
+  margin-bottom: 1rem;
+}
+.dicom-metadata-panel .form-check {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+/* rendi i box delle categorie bianchi anziché trasparenti sul pink */
+.dicom-metadata-panel section {
+  background-color: #ffffff;
+  color: #000000;            /* testo nero */
+  border: 1px solid #ccc;    /* già li avevi, mantiene il bordo grigio */
+  border-radius: 4px;
+  padding: 0.75rem;          /* un po’ di padding in più */
+  margin-bottom: 1rem;
+}
+
+/* assicuriamoci che anche le tabelle interne siano bianche */
+.dicom-metadata-panel section table {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* aggiunge una linea verticale di separazione tra le due colonne */
+.dicom-metadata-panel section table td:first-child {
+  border-right: 1px solid #ddd;
+  padding-right: 1rem;  /* un po’ di spazio dopo la colonna chiave */
+}
+
+/* un piccolo padding anche nella seconda colonna */
+.dicom-metadata-panel section table td:last-child {
+  padding-left: 1rem;
+}
+
+.dicom-metadata-panel section h6 {
+  color:red;
+  font-size: 1rem;
+}
+
+.viewer-sidebar p {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: red;
 }
