@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────
-// src/components/newViewer.tsx
+// src/components/newViewer.tsx  ✔️ full-metadata support
 // ──────────────────────────────────────────────────────────────
 import React, {
   useState,
@@ -11,29 +11,20 @@ import React, {
   useMemo,
 } from "react";
 import dicomParser from "dicom-parser";
-
 import {
   FrameViewport,
   type FrameViewportRef,
 } from "../newViewport/components/FrameViewport";
-import {
-  Circle,
-  Polyline,
-  Text,
-} from "../newViewport/components/Overlays";
+import { Circle, Polyline, Text } from "../newViewport/components/Overlays";
 import { Navigation } from "../newViewport/components/Navigation";
 import { SeriesInfo } from "./NestedDicomTable";
 import { useComponentVariant } from "../hooks/useComponentVariant";
-import {
-  Point,
-  ViewportPointerEvent,
-} from "../newViewport/types";
+import { Point, ViewportPointerEvent } from "../newViewport/types";
 import { noop } from "framer-motion";
 
 /* -------------------------------------------------------------------------- */
 /*  Helpers                                                                   */
 /* -------------------------------------------------------------------------- */
-
 async function imageFromPixelData(
   width: number,
   height: number,
@@ -62,23 +53,22 @@ async function imageFromPixelData(
   }
 
   ctx.putImageData(imageData, 0, 0);
-  return new Promise((resolve) => {
+  return new Promise((r) => {
     const img = new Image();
-    img.onload = () => resolve(img);
+    img.onload = () => r(img);
     img.src = canvas.toDataURL();
   });
 }
 
 async function loadDicomImage(filePath: string) {
-  const encodedPath = filePath
-    .split("/")
-    .map((seg) => encodeURIComponent(seg))
-    .join("/");
-  const url = `${window.location.origin}${encodedPath}`;
+  const url =
+    window.location.origin +
+    filePath
+      .split("/")
+      .map(encodeURIComponent)
+      .join("/");
   const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch ${url}, status ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`Fetch ${url}: ${res.status}`);
   const buffer = await res.arrayBuffer();
   const dataSet = dicomParser.parseDicom(new Uint8Array(buffer));
 
@@ -86,21 +76,23 @@ async function loadDicomImage(filePath: string) {
   const rows = dataSet.uint16("x00280010");
   const bitsAllocated = dataSet.uint16("x00280100");
   const pde = dataSet.elements.x7fe00010;
-  if (cols == null || rows == null || bitsAllocated == null || !pde) {
+  if (!cols || !rows || !bitsAllocated || !pde)
     throw new Error("Missing DICOM image data");
-  }
 
-  const offset = pde.dataOffset;
   const frameLen = rows * cols * (bitsAllocated / 8);
   const byteArray = dataSet.byteArray.buffer;
-  const pixelData = bitsAllocated === 16
-    ? new Uint16Array(byteArray, offset, frameLen / 2)
-    : new Uint8Array(byteArray, offset, frameLen);
+  const pixelData =
+    bitsAllocated === 16
+      ? new Uint16Array(byteArray, pde.dataOffset, frameLen / 2)
+      : new Uint8Array(byteArray, pde.dataOffset, frameLen);
 
-  const metadata = {
-    // — patient & study & series basics —
+  const image = await imageFromPixelData(cols, rows, pixelData, bitsAllocated);
+
+  /* ───── full metadata pass-through (subset categorised) ───── */
+  const metadata: Record<string, any> = {
+    /* patient / study / series */
     specificCharacterSet: dataSet.string("x00080005"),
-    imageType: dataSet.string("x00080008")?.split("\\") || undefined,
+    imageType: dataSet.string("x00080008")?.split("\\"),
     sopClassUID: dataSet.string("x00080016"),
     sopInstanceUID: dataSet.string("x00080018"),
     studyDate: dataSet.string("x00080020"),
@@ -119,23 +111,23 @@ async function loadDicomImage(filePath: string) {
     studyDescription: dataSet.string("x00081030") || dataSet.string("x00181030"),
     seriesDescription: dataSet.string("x0008103E") || dataSet.string("x0008103e"),
     manufacturerModelName: dataSet.string("x00081090"),
-    referencedImageSequence: dataSet.elements.x00081140 && dataSet.string("x00081140"),
+    referencedImageSequence: dataSet.string("x00081140"),
 
-    // — patient identity —
+    /* patient identity */
     patientName: dataSet.string("x00100010"),
     patientId: dataSet.string("x00100020"),
     patientBirthDate: dataSet.string("x00100030"),
     patientSex: dataSet.string("x00100040"),
 
-    // — private tags (if you want) —
+    /* private tags */
     privateCreator: dataSet.string("x00110010"),
     userData: dataSet.elements.x00111001,
     normalizationCoefficient: dataSet.string("x00111002"),
-    receivingGain: dataSet.elements.x00111003 && dataSet.uint16("x00111003"),
+    receivingGain: dataSet.uint16("x00111003"),
     meanImageNoise: dataSet.string("x00111004"),
     privateTagData: dataSet.string("x00111008"),
 
-    // — imaging parameters —
+    /* imaging parameters */
     bodyPartExamined: dataSet.string("x00180015"),
     scanningSequence: dataSet.string("x00180020"),
     sequenceVariant: dataSet.string("x00180021"),
@@ -158,12 +150,11 @@ async function loadDicomImage(filePath: string) {
     protocolName: dataSet.string("x00181030"),
     receiveCoilName: dataSet.string("x00181250"),
     acquisitionMatrix: dataSet.string("x00181310"),
-    inPlanePhaseEncodingDirection:
-      dataSet.string("x00181312"),
+    inPlanePhaseEncodingDirection: dataSet.string("x00181312"),
     flipAngle: dataSet.string("x00181314"),
     patientPosition: dataSet.string("x00185100"),
 
-    // — study/series identifiers —
+    /* identifiers */
     studyInstanceUID: dataSet.string("x0020000D"),
     seriesInstanceUID: dataSet.string("x0020000E") || dataSet.string("x0020000e"),
     studyID: dataSet.string("x00200010"),
@@ -174,7 +165,7 @@ async function loadDicomImage(filePath: string) {
     positionReferenceIndicator: dataSet.string("x00201040"),
     sliceLocation: dataSet.string("x00201041"),
 
-    // — geometry & pixmap —
+    /* geometry & pixmap */
     imagePositionPatient: dataSet.string("x00200032")?.split("\\").map(Number),
     imageOrientationPatient: dataSet.string("x00200037")?.split("\\").map(Number),
     samplesPerPixel: dataSet.string("x00280002"),
@@ -190,33 +181,19 @@ async function loadDicomImage(filePath: string) {
     windowWidth: dataSet.string("x00281051"),
     lossyImageCompression: dataSet.string("x00282110"),
 
-    // — performed procedure step —
-    performedProcedureStepStartDate:
-      dataSet.string("x00400244"),
-    performedProcedureStepStartTime:
-      dataSet.string("x00400245"),
+    /* performed procedure step */
+    performedProcedureStepStartDate: dataSet.string("x00400244"),
+    performedProcedureStepStartTime: dataSet.string("x00400245"),
     performedProcedureStepID: dataSet.string("x00400253"),
-  } as const;
+  };
 
-
-  const image = await imageFromPixelData(cols, rows, pixelData, bitsAllocated);
   return { image, metadata } as const;
 }
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
 /* -------------------------------------------------------------------------- */
-
-export interface Metadata {
-  patientId?: string;
-  patientName?: string;
-  patientSex?: string;
-  studyDate?: string;
-  studyDescription?: string;
-  seriesDescription?: string;
-  manufacturer?: string;
-}
-
+export type Metadata = Record<string, any>;        // full dynamic map
 type Measurement = { p1: Point; p2: Point };
 type Annotation = { id: number; x: number; y: number; text: string };
 
@@ -232,325 +209,328 @@ export interface ViewerHandles {
 
 export interface ViewerProps {
   series: SeriesInfo | null;
-  onMetadataExtracted?: (md: Metadata) => void;
+
+  /* modes */
   brightnessMode?: boolean;
   measurementMode?: boolean;
   annotationMode?: boolean;
   panMode?: boolean;
+
+  /* initial values / overrides */
+  initialFrame?: number;
+  initialZoomStep?: number;
+  initialBrightness?: number;
+  initialContrast?: number;
+  fps?: number;
+  loop?: boolean;
+  flipHorizontal?: boolean;
+  flipVertical?: boolean;
+
+  /* UI toggles */
+  showSlider?: boolean;
+  showFpsInput?: boolean;
+  showLoopBtn?: boolean;
+  overlayCircles?: boolean;
+
+  onMetadataExtracted?: (md: Metadata) => void;
 }
 
 /* -------------------------------------------------------------------------- */
 /*  Component                                                                 */
 /* -------------------------------------------------------------------------- */
-const NewViewer = forwardRef<ViewerHandles, ViewerProps>(
-  (
-    {
-      series,
-      onMetadataExtracted,
-      brightnessMode = false,
-      measurementMode = false,
-      annotationMode = false,
-      panMode = false,
+const NewViewer = forwardRef<ViewerHandles, ViewerProps>((props, ref) => {
+  /* ── variant merge ── */
+  const variant = useComponentVariant<{
+    showControls: string[];
+    overlayCircles: boolean;
+  }>("NewViewer");
+
+  const {
+    series,
+    brightnessMode = false,
+    measurementMode = false,
+    annotationMode = false,
+    panMode = false,
+
+    initialFrame = 0,
+    initialZoomStep = 0,
+    initialBrightness = 50,
+    initialContrast = 50,
+    fps: fpsProp = 20,
+    loop = false,
+    flipHorizontal = false,
+    flipVertical = false,
+
+    showSlider: showSliderProp,
+    showFpsInput: showFpsInputProp,
+    showLoopBtn: showLoopBtnProp,
+    overlayCircles: overlayCirclesProp,
+
+    onMetadataExtracted,
+  } = props;
+
+  const showSlider =
+    showSliderProp ?? variant.showControls.includes("slider");
+  const showFpsInput =
+    showFpsInputProp ?? variant.showControls.includes("fpsInput");
+  const showLoopBtn =
+    showLoopBtnProp ?? variant.showControls.includes("loopButton");
+  const overlayCircles =
+    overlayCirclesProp ?? variant.overlayCircles ?? false;
+
+  const paths = series?.imageFilePaths ?? [];
+  const nFrames = series?.numberOfImages ?? 0;
+
+  /* ── state ── */
+  const [idx, setIdx] = useState(initialFrame);
+  const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(
+    Array(paths.length).fill(null),
+  );
+  const [loadedCount, setLoaded] = useState(0);
+  const [allLoaded, setAllLoaded] = useState(false);
+  const [isLooping, setIsLooping] = useState(loop);
+  const [fps, setFps] = useState(fpsProp);
+
+  const [zoomStep, setZoomStep] = useState(initialZoomStep);
+  const [panFactor, setPanFactor] = useState({ x: 0, y: 0 });
+
+  const [brightness, setBrightness] = useState(initialBrightness);
+  const [contrast, setContrast] = useState(initialContrast);
+
+  const [flipH, setFlipH] = useState(flipHorizontal);
+  const [flipV, setFlipV] = useState(flipVertical);
+
+  const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [tempPoint, setTempPoint] = useState<Point | null>(null);
+  const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+
+  /* sync prop → state when knobs change */
+  useEffect(() => setIdx(initialFrame), [initialFrame]);
+  useEffect(() => setZoomStep(initialZoomStep), [initialZoomStep]);
+  useEffect(() => setBrightness(initialBrightness), [initialBrightness]);
+  useEffect(() => setContrast(initialContrast), [initialContrast]);
+  useEffect(() => setFlipH(flipHorizontal), [flipHorizontal]);
+  useEffect(() => setFlipV(flipVertical), [flipVertical]);
+  useEffect(() => setFps(fpsProp), [fpsProp]);
+  useEffect(() => setIsLooping(loop), [loop]);
+
+  /* ── refs ── */
+  const viewportRef = useRef<FrameViewportRef>(null);
+
+  /* imperative handles */
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => setZoomStep((z) => Math.min(z + 1, 10)),
+    zoomOut: () => setZoomStep((z) => Math.max(z - 1, 0)),
+    brightnessUp: () => setBrightness((b) => Math.min(b + 10, 100)),
+    brightnessDown: () => setBrightness((b) => Math.max(b - 10, 0)),
+    flipHorizontal: () => setFlipH((f) => !f),
+    flipVertical: () => setFlipV((f) => !f),
+    resetView: () => {
+      setZoomStep(initialZoomStep);
+      setPanFactor({ x: 0, y: 0 });
+      setBrightness(initialBrightness);
+      setContrast(initialContrast);
+      setFlipH(flipHorizontal);
+      setFlipV(flipVertical);
+      setMeasurements([]);
+      setAnnotations([]);
+      setTempPoint(null);
+      setPreviewPoint(null);
+      setIdx(initialFrame);
     },
-    ref,
-  ) => {
-    /* ───── variant ───── */
-    const variant = useComponentVariant<{
-      showControls: string[];
-      overlayCircles: boolean;
-    }>("NewViewer");
+  }));
 
-    const showSlider = variant.showControls.includes("slider");
-    const showFpsInput = variant.showControls.includes("fpsInput");
-    const showLoopBtn = variant.showControls.includes("loopButton");
+  /* ── loading ── */
+  useEffect(() => {
+    if (!series) return;
+    let cancel = false;
 
-    const imageFilePaths = series?.imageFilePaths ?? [];
-    const numberOfImages = series?.numberOfImages ?? 0;
+    setIdx(initialFrame);
+    setFrames(Array(nFrames).fill(null));
+    setLoaded(0);
+    setAllLoaded(false);
 
-    /* ───── viewport state ───── */
-    const [idx, setIdx] = useState(0);
-    const [frames, setFrames] = useState<(HTMLImageElement | null)[]>(() =>
-      Array(imageFilePaths.length).fill(null)
-    );
-    const [loadedCount, setLoaded] = useState(0);
-    const [allLoaded, setAllLoaded] = useState(false);
-    const [isLooping, setIsLooping] = useState(false);
-    const [fps, setFps] = useState(20);
-
-    const [zoomStep, setZoomStep] = useState(0);
-    const [panFactor, setPanFactor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-
-    const [brightness, setBrightness] = useState(50);
-    const [contrast, setContrast] = useState(50);
-
-    const [flipH, setFlipH] = useState(false);
-    const [flipV, setFlipV] = useState(false);
-
-    /* ───── overlays state ───── */
-    const [measurements, setMeasurements] = useState<{ p1: Point; p2: Point }[]>([]);
-    const [tempPoint, setTempPoint] = useState<Point | null>(null);
-    const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
-
-    const [annotations, setAnnotations] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
-
-    /* ───── refs ───── */
-    const containerRef = useRef<HTMLDivElement>(null);
-    const viewportRef = useRef<FrameViewportRef>(null);
-    const prevZoomWhenPan = useRef<number>(0);
-
-    /* -------------------------------------------------------------------- */
-    /*  Scroll lock (ma lasci passare wheel dentro il FrameViewport)       */
-    /* -------------------------------------------------------------------- */
-    useEffect(() => {
-      const stop = (e: WheelEvent) => {
-        if (containerRef.current?.contains(e.target as Node)) {
-          // blocca lo scroll di pagina, 
-          // ma passaggio dell'evento al FrameViewport (che ha onWheel) rimane
-          e.preventDefault();
-        }
-      };
-      window.addEventListener("wheel", stop, { passive: false });
-      return () => window.removeEventListener("wheel", stop);
-    }, []);
-
-
-    /* -------------------------------------------------------------------- */
-    /*  Imperative handles                                                  */
-    /* -------------------------------------------------------------------- */
-    useImperativeHandle(
-      ref,
-      () => ({
-        zoomIn: () => setZoomStep((z) => Math.min(z + 1, 10)),
-        zoomOut: () => setZoomStep((z) => Math.max(z - 1, 0)),
-        brightnessUp: () => setBrightness((b) => Math.min(b + 10, 100)),
-        brightnessDown: () => setBrightness((b) => Math.max(b - 10, 0)),
-        flipHorizontal: () => setFlipH((f) => !f),
-        flipVertical: () => setFlipV((f) => !f),
-        resetView: () => {
-          setZoomStep(0);
-          setPanFactor({ x: 0, y: 0 });
-          setBrightness(50);
-          setContrast(50);
-          setFlipH(false);
-          setFlipV(false);
-          setMeasurements([]);
-          setAnnotations([]);
-          setTempPoint(null);
-          setPreviewPoint(null);
-          setIdx(0);
-          setAllLoaded(false);
-        },
-      }),
-      []
-    );
-
-    /* -------------------------------------------------------------------- */
-    /*  Frame loading (parallelo + log + allLoaded)                        */
-    /* -------------------------------------------------------------------- */
-    useEffect(() => {
-      if (!series) return;
-      let cancelled = false;
-
-      setIdx(0);
-      setFrames(Array(numberOfImages).fill(null));
-      setLoaded(0);
-      setAllLoaded(false);
-
-      (async () => {
-        const promises = imageFilePaths.map((path, i) =>
-          loadDicomImage(path)
-            .then(({ image, metadata }) => {
-              if (cancelled) return;
-              setFrames((f) => {
-                const n = [...f];
-                n[i] = image;
-                return n;
-              });
-              setLoaded((c) => {
-                const next = c + 1;
-                console.log(`[NewViewer] loaded ${next}/${numberOfImages}`);
-                if (i === 0) onMetadataExtracted?.(metadata);
-                return next;
-              });
-            })
-            .catch((err) => console.error(`[NewViewer] frame ${i}`, err))
-        );
-        await Promise.all(promises);
-        if (!cancelled) {
-          console.log(`[NewViewer] ALL ${numberOfImages} images loaded`);
-          setAllLoaded(true);
-        }
-      })();
-
-      return () => void (cancelled = true);
-    }, [series, imageFilePaths, numberOfImages, onMetadataExtracted]);
-
-    const displayed = useMemo(() => {
-      if (!series) return null;
-      return frames[idx] ?? frames[0];
-    }, [series, frames, idx]);
-
-    /* -------------------------------------------------------------------- */
-    /*  Pointer handlers                                                    */
-    /* -------------------------------------------------------------------- */
-    const handlePointerDown = useCallback(
-      (ev: ViewportPointerEvent) => {
-        if (!ev.isOverImage || ev.button !== 0) return;
-        if (panMode) return;
-        if (annotationMode) {
-          const text = prompt("Annotation text?") ?? "";
-          setAnnotations((a) => [...a, { id: Date.now(), x: ev.position.x, y: ev.position.y, text }]);
-          return;
-        }
-        if (measurementMode) {
-          if (!tempPoint) {
-            setTempPoint(ev.position);
-            setPreviewPoint(null);
-          } else {
-            setMeasurements((m) => [...m, { p1: tempPoint, p2: ev.position }]);
-            setTempPoint(null);
-            setPreviewPoint(null);
-          }
-        }
-      },
-      [annotationMode, measurementMode, tempPoint, panMode]
-    );
-
-    const handlePointerMove = useCallback(
-      (ev: ViewportPointerEvent) => {
-        if (measurementMode && tempPoint) {
-          setPreviewPoint(ev.position);
-        }
-      },
-      [measurementMode, tempPoint]
-    );
-
-    /* -------------------------------------------------------------------- */
-    /*  Overlays                                                            */
-    /* -------------------------------------------------------------------- */
-    const measurementOverlays = (() => {
-      if (measurements.length === 0 && !(measurementMode && tempPoint && previewPoint))
-        return null;
-      const items: React.ReactNode[] = [];
-      const add = (m: Measurement, prev: boolean, i: number) => {
-        const { p1, p2 } = m;
-        const dx = p2.x - p1.x, dy = p2.y - p1.y;
-        const dist = Math.hypot(dx, dy);
-        const mid = { x: p1.x + dx / 2, y: p1.y + dy / 2 };
-
-        items.push(
-          <Polyline
-            key={`pl-${prev ? 'prev' : i}`}
-            points={`${p1.x},${p1.y} ${p2.x},${p2.y}`}
-            stroke={prev ? 'orange' : '#00eaff'}
-            strokeWidth={prev ? 1.5 : 2}
-            strokeDasharray={prev ? '4 4' : undefined}
-          />
-        );
-        items.push(
-          <Circle
-            key={`c1-${prev ? 'prev' : i}`}
-            cx={p1.x} cy={p1.y} r={3}
-            fill={prev ? 'orange' : '#00eaff'}
-          />
-        );
-        items.push(
-          <Circle
-            key={`c2-${prev ? 'prev' : i}`}
-            cx={p2.x} cy={p2.y} r={3}
-            fill={prev ? 'orange' : '#00eaff'}
-          />
-        );
-        items.push(
-          <Text
-            key={`t-${prev ? 'prev' : i}`}
-            x={mid.x} y={mid.y - 8}
-            fontSize={12}
-            fill={prev ? 'orange' : 'white'}
-            textAnchor="middle"
-          >
-            {`${dist.toFixed(0)} px`}
-          </Text>
-        );
-      };
-
-      measurements.forEach((m, i) => add(m, false, i));
-      if (tempPoint && previewPoint) add({ p1: tempPoint, p2: previewPoint }, true, 0);
-      return items;
+    (async () => {
+      const tasks = paths.map((p, i) =>
+        loadDicomImage(p)
+          .then(({ image, metadata }) => {
+            if (cancel) return;
+            setFrames((f) => {
+              const n = [...f];
+              n[i] = image;
+              return n;
+            });
+            setLoaded((c) => {
+              const nxt = c + 1;
+              if (i === 0) onMetadataExtracted?.(metadata);
+              return nxt;
+            });
+          })
+          .catch(console.error),
+      );
+      await Promise.all(tasks);
+      if (!cancel) setAllLoaded(true);
     })();
 
-    const annotationOverlays = useMemo(
-      () =>
-        annotationMode
-          ? annotations.flatMap((a) => [
+    return () => void (cancel = true);
+  }, [series, paths, nFrames, initialFrame, onMetadataExtracted]);
+
+  const displayed = useMemo(
+    () => (series ? frames[idx] ?? frames[0] : null),
+    [series, frames, idx],
+  );
+
+  /* pointer ↓ */
+  const handlePointerDown = useCallback(
+    (ev: ViewportPointerEvent) => {
+      if (!ev.isOverImage || ev.button !== 0) return;
+      if (panMode) return;
+      if (annotationMode) {
+        const text = prompt("Annotation text?") ?? "";
+        setAnnotations((a) => [
+          ...a,
+          { id: Date.now(), x: ev.position.x, y: ev.position.y, text },
+        ]);
+        return;
+      }
+      if (measurementMode) {
+        if (!tempPoint) {
+          setTempPoint(ev.position);
+          setPreviewPoint(null);
+        } else {
+          setMeasurements((m) => [...m, { p1: tempPoint, p2: ev.position }]);
+          setTempPoint(null);
+          setPreviewPoint(null);
+        }
+      }
+    },
+    [annotationMode, measurementMode, panMode, tempPoint],
+  );
+
+  const handlePointerMove = useCallback(
+    (ev: ViewportPointerEvent) => {
+      if (measurementMode && tempPoint) setPreviewPoint(ev.position);
+    },
+    [measurementMode, tempPoint],
+  );
+
+  /* overlays */
+  const measurementOverlays = useMemo(() => {
+    if (!measurementMode && measurements.length === 0) return null;
+    const items: React.ReactNode[] = [];
+    const add = (m: Measurement, prev: boolean, k: string) => {
+      const { p1, p2 } = m;
+      const dx = p2.x - p1.x,
+        dy = p2.y - p1.y;
+      const dist = Math.hypot(dx, dy);
+      const mid = { x: p1.x + dx / 2, y: p1.y + dy / 2 };
+      items.push(
+        <Polyline
+          key={`pl-${k}`}
+          points={`${p1.x},${p1.y} ${p2.x},${p2.y}`}
+          stroke={prev ? "orange" : "#00eaff"}
+          strokeWidth={prev ? 1.5 : 2}
+          strokeDasharray={prev ? "4 4" : undefined}
+        />,
+        <Circle key={`c1-${k}`} cx={p1.x} cy={p1.y} r={3} fill="#00eaff" />,
+        <Circle key={`c2-${k}`} cx={p2.x} cy={p2.y} r={3} fill="#00eaff" />,
+        <Text
+          key={`t-${k}`}
+          x={mid.x}
+          y={mid.y - 8}
+          fontSize={12}
+          fill="#fff"
+          textAnchor="middle"
+        >
+          {dist.toFixed(0)} px
+        </Text>,
+      );
+    };
+    measurements.forEach((m, i) => add(m, false, String(i)));
+    if (tempPoint && previewPoint)
+      add({ p1: tempPoint, p2: previewPoint }, true, "prev");
+    return items;
+  }, [measurements, measurementMode, tempPoint, previewPoint]);
+
+  const annotationOverlays = useMemo(
+    () =>
+      annotationMode
+        ? annotations.flatMap((a) => [
             <Circle key={`ac-${a.id}`} cx={a.x} cy={a.y} r={5} fill="yellow" />,
-            <Text key={`at-${a.id}`} x={a.x + 8} y={a.y - 8} fontSize={12} fill="yellow">{a.text}</Text>,
+            <Text
+              key={`at-${a.id}`}
+              x={a.x + 8}
+              y={a.y - 8}
+              fontSize={12}
+              fill="yellow"
+            >
+              {a.text}
+            </Text>,
           ])
-          : null,
-      [annotationMode, annotations]
-    );
+        : null,
+    [annotationMode, annotations],
+  );
 
-    /* -------------------------------------------------------------------- */
-    /*  Render                                                              */
-    /* -------------------------------------------------------------------- */
-    if (!series) return <div className="dicom-viewer-container">Seleziona una serie…</div>;
-    if (!displayed) return <div className="dicom-viewer-container">Caricamento immagini…</div>;
+  /* render */
+  if (!series)
+    return <div className="dicom-viewer-container">Seleziona una serie…</div>;
+  if (!displayed)
+    return <div className="dicom-viewer-container">Caricamento immagini…</div>;
 
-    return (
-      <div ref={containerRef} className="dicom-viewer-container" style={{
-        display: "flex", flexDirection: "column", height: "100%", overscrollBehavior: "contain"
-      }}>
-        <div style={{ flex: 1, position: "relative" }}>
-          <FrameViewport
-            ref={viewportRef}
-            frame={displayed}
-            cursor={{
-              imageArea: panMode ? "grab" : "crosshair",
-              viewportArea: panMode ? "grab" : "crosshair",
-            }}
-            zoomStep={zoomStep}
-            panFactor={panFactor}
-            brightness={brightness}
-            contrast={contrast}
-            flipHorizontal={flipH}
-            flipVertical={flipV}
-            onZoomStepChange={setZoomStep}
-            onPanFactorChange={brightnessMode ? noop : setPanFactor}
-            onBrightnessChange={brightnessMode ? setBrightness : undefined}
-            onContrastChange={brightnessMode ? setContrast : undefined}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-          >
-            {variant.overlayCircles && (
-              <Circle
-                cx={displayed.naturalWidth / 2}
-                cy={displayed.naturalHeight / 2}
-                r={4}
-              />
-            )}
-            {measurementOverlays}
-            {annotationOverlays}
-          </FrameViewport>
-        </div>
-
-        {showSlider && (
-          <Navigation
-            frameIndex={idx}
-            numberOfFrames={numberOfImages}
-            numberOfAvailableFrames={loadedCount}
-            isLooping={showLoopBtn ? isLooping && allLoaded : false}
-            frameRate={showFpsInput ? fps : 20}
-            hasArrowButtons
-            onFrameIndexChange={(n) =>
-              setIdx(Math.max(0, Math.min(n, numberOfImages - 1)))
-            }
-            onIsLoopingChange={showLoopBtn ? setIsLooping : undefined}
-            onFrameRateChange={showFpsInput ? setFps : undefined}
-          />
-        )}
+  return (
+    <div
+      className="dicom-viewer-container"
+      style={{ display: "flex", flexDirection: "column", height: "100%" }}
+    >
+      <div style={{ flex: 1, position: "relative" }}>
+        <FrameViewport
+          ref={viewportRef}
+          frame={displayed}
+          cursor={{
+            imageArea: panMode ? "grab" : "crosshair",
+            viewportArea: panMode ? "grab" : "crosshair",
+          }}
+          zoomStep={zoomStep}
+          panFactor={panFactor}
+          brightness={brightness}
+          contrast={contrast}
+          flipHorizontal={flipH}
+          flipVertical={flipV}
+          onZoomStepChange={setZoomStep}
+          onPanFactorChange={brightnessMode ? noop : setPanFactor}
+          onBrightnessChange={brightnessMode ? setBrightness : undefined}
+          onContrastChange={brightnessMode ? setContrast : undefined}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+        >
+          {overlayCircles && (
+            <Circle
+              cx={displayed.naturalWidth / 2}
+              cy={displayed.naturalHeight / 2}
+              r={4}
+            />
+          )}
+          {measurementOverlays}
+          {annotationOverlays}
+        </FrameViewport>
       </div>
-    );
-  }
-);
+
+      {showSlider && (
+        <Navigation
+          frameIndex={idx}
+          numberOfFrames={nFrames}
+          numberOfAvailableFrames={loadedCount}
+          isLooping={showLoopBtn ? isLooping && allLoaded : false}
+          frameRate={showFpsInput ? fps : 20}
+          hasArrowButtons
+          onFrameIndexChange={(n) => setIdx(Math.max(0, Math.min(n, nFrames - 1)))}
+          onIsLoopingChange={showLoopBtn ? setIsLooping : undefined}
+          onFrameRateChange={showFpsInput ? setFps : undefined}
+        />
+      )}
+    </div>
+  );
+});
 
 export default NewViewer;

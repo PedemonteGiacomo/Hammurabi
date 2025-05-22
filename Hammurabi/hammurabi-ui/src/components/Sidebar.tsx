@@ -1,10 +1,13 @@
-// src/components/Sidebar.tsx
 import React from "react";
 import DicomMetadataPanel from "./DicomMetadataPanel";
 import { useComponentVariant } from "../hooks/useComponentVariant";
 
-interface SidebarProps {
+export interface SidebarProps {
   metadata: Record<string, any> | null;
+  // added for storybook controls:
+  width?: string | number;
+  height?: string | number;
+  collapsible?: boolean;
 }
 
 interface Variant {
@@ -13,9 +16,18 @@ interface Variant {
   collapsible?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ metadata }) => {
-  const { width, height, collapsible } =
+const Sidebar: React.FC<SidebarProps> = ({
+  metadata,
+  width: widthOverride,
+  height: heightOverride,
+  collapsible: collapsibleOverride,
+}) => {
+  const { width: widthSchema, height: heightSchema, collapsible: collapsibleSchema } =
     useComponentVariant<Variant>("Sidebar");
+
+  const width = widthOverride ?? widthSchema;
+  const height = heightOverride ?? heightSchema;
+  const collapsible = collapsibleOverride ?? collapsibleSchema ?? false;
 
   return (
     <aside

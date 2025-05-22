@@ -1,8 +1,7 @@
-// src/stories/DicomMetadata.stories.tsx
-import React from 'react'
-import type { Meta, StoryObj } from '@storybook/react'
-import Sidebar from '../components/Sidebar'
-import DicomMetadataPanel from '../components/DicomMetadataPanel'
+import React from 'react';
+import type { Meta, StoryObj } from '@storybook/react';
+import Sidebar, { SidebarProps } from '../components/Sidebar';
+import DicomMetadataPanel from '../components/DicomMetadataPanel';
 
 // campione completo di metadata
 const sampleMetadata = {
@@ -88,44 +87,57 @@ const sampleMetadata = {
   performedProcedureStepStartDate: '20250521',
   performedProcedureStepStartTime: '121500',
   performedProcedureStepID: 'PPS1',
-}
+};
 
-const meta: Meta = {
-  title: 'Components/DicomMetadata',
+const meta: Meta<SidebarProps> = {
+  title: 'Components/Sidebar',
+  component: Sidebar,
+  decorators: [
+    (Story) => (
+      <div style={{ background: '#0d1117', padding: '1rem' }}>
+        <Story />
+      </div>
+    ),
+  ],
+  argTypes: {
+    metadata: {
+      control: false,
+    },
+    width: {
+      control: { type: 'text' },
+      description: 'Width of the sidebar (string or number)',
+    },
+    height: {
+      control: { type: 'text' },
+      description: 'Height of the sidebar (string or number)',
+    },
+    collapsible: {
+      control: { type: 'boolean' },
+      description: 'Enable vertical scroll when content overflows',
+    },
+  },
   parameters: {
     layout: 'centered',
   },
-}
-export default meta
+};
+export default meta;
 
-type Story = StoryObj<typeof DicomMetadataPanel>
+type Story = StoryObj<SidebarProps>;
 
-/** 1) (optional) solo il pannello vuoto */
-// export const PanelEmpty: Story = {
-//   name: 'Panel / Empty',
-//   render: () => (
-//     <div style={{ width: 400, height: 300, padding: '1rem', background: '#1c1c1c' }}>
-//       <DicomMetadataPanel metadata={null} />
-//     </div>
-//   ),
-// }
+export const Empty: Story = {
+  args: {
+    metadata: null,
+    width: '300px',
+    height: 'auto',
+    collapsible: false,
+  },
+};
 
-/** 2) solo il pannello popolato */
-export const PanelWithData: Story = {
-  name: 'Panel / With Data',
-  render: () => (
-    <div style={{ width: 400, height: 500, padding: '1rem', background: '#1c1c1c', overflow: 'auto' }}>
-      <DicomMetadataPanel metadata={sampleMetadata} />
-    </div>
-  ),
-}
-
-/** 3) sidebar intera (con titolo + pannello) */
-export const SidebarWithData: Story = {
-  name: 'Sidebar / With Data',
-  render: () => (
-    <div style={{ width: 500, padding: '1rem', background: '#0d1117' }}>
-      <Sidebar metadata={sampleMetadata} />
-    </div>
-  ),
-}
+export const WithMetadata: Story = {
+  args: {
+    metadata: sampleMetadata,
+    width: '100%',
+    height: '500px',
+    collapsible: true,
+  },
+};

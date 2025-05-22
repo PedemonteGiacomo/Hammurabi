@@ -1,68 +1,96 @@
-// src/components/NewViewer.stories.tsx
-import type { Meta, StoryObj } from '@storybook/react';
-import NewViewer from '../components/newViewer';
-import type { SeriesInfo } from '../components/NestedDicomTable';
+import type { Meta, StoryObj } from "@storybook/react";
+import NewViewer, { ViewerProps } from "../components/newViewer";
+import type { SeriesInfo } from "../components/NestedDicomTable";
 
-const dummy50: SeriesInfo = {
-  seriesUID: '1.2.840.loop.50',
-  seriesDescription: 'Dummy 50-frame series',
+const series50: SeriesInfo = {
+  seriesUID: "1.2.840.loop.50",
+  seriesDescription: "Dummy 50-frame series",
   numberOfImages: 50,
   imageFilePaths: Array.from({ length: 50 }, (_, i) =>
-    `/assets/esaote_magnifico/ForMIP/1_3_76_2_1_1_4_1_3_9044_778600979_${i + 1}.dcm`
+    `/assets/esaote_magnifico/ForMIP/1_3_76_2_1_1_4_1_3_9044_778600979_${i + 1}.dcm`,
   ),
 };
 
-const meta: Meta<typeof NewViewer> = {
-  title: 'Components/NewViewer',
+const meta: Meta<ViewerProps> = {
+  title: "Components/NewViewer",
   component: NewViewer,
   decorators: [
     (Story) => (
-      <div style={{ width: '100%', height: '400px', background: '#000' }}>
+      <div style={{ width: "100%", height: 500, background: "#000" }}>
         <Story />
       </div>
     ),
   ],
-  parameters: {
-    layout: 'fullscreen',
+  parameters: { layout: "fullscreen" },
+  argTypes: {
+    /* modes */
+    brightnessMode: { control: "boolean" },
+    measurementMode: { control: "boolean" },
+    annotationMode: { control: "boolean" },
+    panMode: { control: "boolean" },
+
+    /* ui flags */
+    showSlider: { control: "boolean" },
+    showFpsInput: { control: "boolean" },
+    showLoopBtn: { control: "boolean" },
+    overlayCircles: { control: "boolean" },
+
+    /* initial values */
+    initialFrame: { control: { type: "number", min: 0, step: 1 } },
+    initialZoomStep: { control: { type: "number", min: 0, max: 10, step: 1 } },
+    initialBrightness: { control: { type: "range", min: 0, max: 100 } },
+    initialContrast: { control: { type: "range", min: 0, max: 100 } },
+    fps: { control: { type: "number", min: 1, step: 1 } },
+    loop: { control: "boolean" },
+    flipHorizontal: { control: "boolean" },
+    flipVertical: { control: "boolean" },
+
+    /* hide series & callback from controls panel */
+    series: { table: { disable: true } },
+    onMetadataExtracted: { table: { disable: true } },
   },
 };
 export default meta;
 
-type Story = StoryObj<typeof NewViewer>;
+type Story = StoryObj<ViewerProps>;
 
-export const NoSeries: Story = {
-  args: { series: null },
-};
-
-export const Loading: Story = {
+export const Basic: Story = {
   args: {
-    series: {
-      seriesUID: '1.2.3',
-      seriesDescription: 'Dummy Series',
-      numberOfImages: 1,
-      imageFilePaths: ['/assets/dummy.dcm'],
-    },
+    series: series50,
+    showSlider: true,
+    showLoopBtn: true,
+    showFpsInput: true,
+    overlayCircles: true,
+    fps: 20,
+    loop: false,
   },
 };
 
-export const BrightContrastMode: Story = {
+export const Brightness: Story = {
   args: {
-    series: {
-      seriesUID: '1.2.3',
-      seriesDescription: 'Dummy Series',
-      numberOfImages: 1,
-      imageFilePaths: ['/assets/esaote_magnifico/ForMIP/1_3_76_2_1_1_4_1_3_9044_778600979_49.dcm'],
-    },
+    series: series50,
     brightnessMode: true,
-  },
-};
-
-export const CineLoop: Story = {
-  args: {
-    series: dummy50,
     measurementMode: false,
-    annotationMode: false,
-    panMode: false,
-    brightnessMode: true,
+    overlayCircles: false,
+  },
+};
+
+export const Measurements: Story = {
+  args: {
+    series: series50,
+    brightnessMode: false,
+    measurementMode: true,
+    overlayCircles: false,
+  },
+};
+
+export const PanAnnotate: Story = {
+  args: {
+    series: series50,
+    panMode: true,
+    annotationMode: true,
+    initialZoomStep: 2,
+    initialBrightness: 60,
+    initialContrast: 70,
   },
 };
