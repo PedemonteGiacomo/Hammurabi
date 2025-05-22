@@ -126,7 +126,7 @@ export const PanelCompleto: PanelStory = {
   },
   args: {
     wrapperWidth: '100%',
-    wrapperHeight: '600px',
+    wrapperHeight: "400px",
     wrapperBg: '#1e1e1e',
     metadata: sampleMetadata,
     showCategoryToggles: true,

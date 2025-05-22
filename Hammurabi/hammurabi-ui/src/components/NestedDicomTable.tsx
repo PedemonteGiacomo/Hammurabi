@@ -1,127 +1,142 @@
-// src/components/NestedDicomTable.tsx
-import React, { useState } from "react";
-import dicomData from "../data/dicomData_updated.json";
+import React, { useState } from 'react';
+import defaultDicomData from '../data/dicomData_updated.json';
 
-// Type definitions
 export interface SeriesInfo {
   seriesUID: string;
   seriesDescription: string;
   numberOfImages: number;
   imageFilePaths: string[];
 }
-
 export interface StudyInfo {
   studyUID: string;
   studyDescription: string;
   studyDate: string;
   series: SeriesInfo[];
 }
-
 export interface PatientInfo {
   patientID: string;
   studies: StudyInfo[];
 }
 
-/**
- * Props for NestedDicomTable:
- * - onSelectSeries: function called when user clicks "View" on a series
- */
-interface NestedDicomTableProps {
-  onSelectSeries: (series: SeriesInfo) => void;
-  onSelectSeries2: (series: SeriesInfo) => void;
+export interface NestedDicomTableProps {
+  /** dataset; se omesso usa il JSON di default */
+  data?: PatientInfo[];
+  /** callback pulsante VIEW 1 */
+  onSelectSeries: (s: SeriesInfo) => void;
+  /** callback pulsante VIEW 2 (facoltativo) */
+  onSelectSeries2?: (s: SeriesInfo) => void;
+
+  /* ---------- UI/UX extra ---------- */
+  showPatientCount?: boolean;
+  initiallyExpandedPatients?: string[];
+  initiallyExpandedStudies?: string[];
+  tableClassName?: string;
+  rowHoverColor?: string;
+  toggleIcons?: { open: string; closed: string };
+  noDataMessage?: string;
 }
 
-const NestedDicomTable: React.FC<NestedDicomTableProps> = ({ onSelectSeries, onSelectSeries2 }) => {
-  // Control which patients/studies are expanded
-  const [expandedPatients, setExpandedPatients] = useState<string[]>([]);
-  const [expandedStudies, setExpandedStudies] = useState<string[]>([]);
+const NestedDicomTable: React.FC<NestedDicomTableProps> = ({
+  data,
+  onSelectSeries,
+  onSelectSeries2,
+  showPatientCount = false,
+  initiallyExpandedPatients = [],
+  initiallyExpandedStudies = [],
+  tableClassName,
+  rowHoverColor = '#222',
+  toggleIcons = { open: '▼', closed: '▶' },
+  noDataMessage = 'No DICOM data',
+}) => {
+  const patients: PatientInfo[] = (data ?? (defaultDicomData as PatientInfo[]))
+    .filter((p) => p.studies?.length);
 
-  const togglePatient = (patientID: string) => {
-    setExpandedPatients((prev) =>
-      prev.includes(patientID)
-        ? prev.filter((id) => id !== patientID)
-        : [...prev, patientID]
+  const [expandedPatients, setExpandedPatients] =
+    useState<string[]>(initiallyExpandedPatients);
+  const [expandedStudies, setExpandedStudies] =
+    useState<string[]>(initiallyExpandedStudies);
+
+  const toggle = <T extends string>(
+    arr: string[],
+    set: React.Dispatch<React.SetStateAction<string[]>>,
+    id: T,
+  ) =>
+    set((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
-  };
 
-  const toggleStudy = (studyUID: string) => {
-    setExpandedStudies((prev) =>
-      prev.includes(studyUID)
-        ? prev.filter((uid) => uid !== studyUID)
-        : [...prev, studyUID]
-    );
-  };
-
-  // Convert raw JSON data to typed array
-  const patients: PatientInfo[] = dicomData as PatientInfo[];
+  if (!patients.length) return <p>{noDataMessage}</p>;
 
   return (
     <div className="nested-dicom-table-container">
-      <table className="study-list-table">
+      <table className={`study-list-table ${tableClassName ?? ''}`}>
         <thead>
           <tr>
-            <th style={{ width: '30%' }}>Patient ID</th>
+            <th style={{ width: '30%' }}>
+              Patient ID
+              {showPatientCount && ` (${patients.length})`}
+            </th>
             <th>Studies / Series Info</th>
           </tr>
         </thead>
         <tbody>
           {patients.map((patient) => {
-            const isPatientExpanded = expandedPatients.includes(patient.patientID);
+            const pOpen = expandedPatients.includes(patient.patientID);
 
             return (
               <React.Fragment key={patient.patientID}>
-                {/* Top-level row for each Patient */}
                 <tr
-                  onClick={() => togglePatient(patient.patientID)}
-                  style={{ cursor: "pointer" }}
+                  onClick={() =>
+                    toggle(expandedPatients, setExpandedPatients, patient.patientID)
+                  }
+                  style={{
+                    cursor: 'pointer',
+                    background: pOpen ? rowHoverColor : undefined,
+                  }}
                 >
                   <td>{patient.patientID}</td>
-                  <td>
-                    {isPatientExpanded ? "▼ Hide Studies" : "▶ Show Studies"}
-                  </td>
+                  <td>{pOpen ? `${toggleIcons.open} Hide` : `${toggleIcons.closed} Show`}</td>
                 </tr>
 
-                {/* If expanded, show that patient’s studies */}
-                {isPatientExpanded &&
+                {pOpen &&
                   patient.studies.map((study) => {
-                    const isStudyExpanded = expandedStudies.includes(study.studyUID);
-                    // Filter out any series that have no images
-                    const seriesWithImages = study.series.filter(
-                      (s) => s.imageFilePaths && s.imageFilePaths.length > 0
+                    const sOpen = expandedStudies.includes(study.studyUID);
+                    const list = study.series.filter(
+                      (s) => s.imageFilePaths?.length,
                     );
-                    // If no series with images, skip
-                    if (seriesWithImages.length === 0) return null;
+                    if (!list.length) return null;
 
                     return (
                       <React.Fragment key={study.studyUID}>
-                        {/* Study row */}
                         <tr
-                          onClick={() => toggleStudy(study.studyUID)}
-                          style={{ cursor: "pointer" }}
+                          onClick={() =>
+                            toggle(expandedStudies, setExpandedStudies, study.studyUID)
+                          }
+                          style={{ cursor: 'pointer' }}
                         >
-                          <td style={{ paddingLeft: "2rem" }}>
+                          <td style={{ paddingLeft: '2rem' }}>
                             <strong>Study UID:</strong> {study.studyUID}
                           </td>
                           <td>
-                            <strong>Date:</strong> {study.studyDate} |{" "}
-                            <strong>Description:</strong> {study.studyDescription} |{" "}
-                            {isStudyExpanded ? "▼ Hide Series" : "▶ Show Series"}
+                            <strong>Date:</strong> {study.studyDate} |{' '}
+                            <strong>Description:</strong>{' '}
+                            {study.studyDescription}{' '}
+                            {sOpen ? toggleIcons.open : toggleIcons.closed}
                           </td>
                         </tr>
 
-                        {/* Series rows (if expanded) */}
-                        {isStudyExpanded &&
-                          seriesWithImages.map((series) => (
+                        {sOpen &&
+                          list.map((series) => (
                             <tr key={series.seriesUID}>
-                              <td style={{ paddingLeft: "4rem" }}>
+                              <td style={{ paddingLeft: '4rem' }}>
                                 <em>Series UID:</em> {series.seriesUID}
                               </td>
                               <td>
-                                <em>Description:</em> {series.seriesDescription} |{" "}
-                                <em>Images:</em> {series.numberOfImages}{" "}
-                                + <button
+                                <em>Description:</em> {series.seriesDescription} |{' '}
+                                <em>Images:</em> {series.numberOfImages}
+                                <button
                                   className="btn btn-sm btn-primary"
-                                  style={{ marginLeft: "1rem" }}
+                                  style={{ marginLeft: '1rem' }}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     onSelectSeries(series);
@@ -132,14 +147,15 @@ const NestedDicomTable: React.FC<NestedDicomTableProps> = ({ onSelectSeries, onS
                                 {onSelectSeries2 && (
                                   <button
                                     className="btn btn-sm btn-secondary"
-                                    style={{ marginLeft: "0.5rem" }}
+                                    style={{ marginLeft: '0.5rem' }}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onSelectSeries2!(series);
+                                      onSelectSeries2(series);
                                     }}
                                   >
                                     View 2
-                                  </button>)}
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))}
