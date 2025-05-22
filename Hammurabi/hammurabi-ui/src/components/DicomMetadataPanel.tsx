@@ -1,10 +1,37 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
-interface DicomMetadataPanelProps {
+export interface DicomMetadataPanelProps {
+  /** Dati DICOM grezzi */
   metadata: Record<string, any> | null;
+
+  /** Mappa categoria → etichetta (override o aggiunte) */
+  categories?: Record<string, string>;
+
+  /** Visibilità iniziale delle sezioni */
+  defaultVisible?: Record<string, boolean>;
+
+  /** Mostra i checkbox di filtro categorie */
+  showCategoryToggles?: boolean;
+
+  /** Mostra/Nasconde completamente il titolo principale */
+  showTitle?: boolean;
+  title?: React.ReactNode;
+
+  /** Abilita il collapse/expand delle singole sezioni (oltre ai checkbox) */
+  collapsibleSections?: boolean;
+
+  /** Render custom di una riga metadata */
+  renderEntry?: (key: string, value: string) => React.ReactNode;
+
+  /** Callback quando viene cambiata la visibilità di una categoria */
+  onToggleCategory?: (category: string, isVisible: boolean) => void;
+
+  /** Styling */
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-const CATEGORIES: Record<string, string> = {
+const DEFAULT_CATEGORIES: Record<string, string> = {
   patient: 'Patient',
   study: 'Study',
   series: 'Series',
@@ -18,16 +45,41 @@ const CATEGORIES: Record<string, string> = {
   procedure: 'Procedure Step',
 };
 
-const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => {
+const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({
+  metadata,
+  categories,
+  defaultVisible,
+  showCategoryToggles = true,
+  showTitle = true,
+  title = 'Extracted Metadata',
+  collapsibleSections = false,
+  renderEntry,
+  onToggleCategory,
+  className,
+  style,
+}) => {
+  const CATEGORIES = useMemo(
+    () => ({ ...DEFAULT_CATEGORIES, ...categories }),
+    [categories]
+  );
+
   const [visible, setVisible] = useState<Record<string, boolean>>(
-    Object.fromEntries(Object.keys(CATEGORIES).map(cat => [cat, true])) as Record<string, boolean>
+    defaultVisible ??
+      (Object.fromEntries(
+        Object.keys(CATEGORIES).map((cat) => [cat, true])
+      ) as Record<string, boolean>)
   );
 
   const toggle = (cat: string) =>
-    setVisible(v => ({ ...v, [cat]: !v[cat] }));
+    setVisible((v) => {
+      const next = { ...v, [cat]: !v[cat] };
+      onToggleCategory?.(cat, next[cat]);
+      return next;
+    });
 
   if (!metadata) return <p>No metadata available</p>;
 
+  /* ------------------------------- PARSING ------------------------------ */
   const entriesByCat: Record<string, [string, string][]> = {};
   Object.entries(metadata).forEach(([key, raw]) => {
     if (raw == null) return;
@@ -37,65 +89,153 @@ const DicomMetadataPanel: React.FC<DicomMetadataPanelProps> = ({ metadata }) => 
       val === 'Unknown' ||
       /^[\x00-\x1F]+$/.test(val) ||
       val === '[object Object]'
-    ) return;
+    )
+      return;
 
     let cat = 'acquisition';
     const k = key.toLowerCase();
     if (k.startsWith('patient') && !k.includes('position')) cat = 'identity';
     else if (k.includes('patient')) cat = 'patient';
-    else if (k.includes('study') || k.includes('contentdate') || k.includes('studydate')) cat = 'study';
-    else if (k.includes('series') || k.includes('referencedimage')) cat = 'series';
-    else if (['manufacturer', 'model', 'stationname'].some(s => k.includes(s))) cat = 'equipment';
-    else if (k.startsWith('private') || k.startsWith('userdata') || k.startsWith('normalization')) cat = 'private';
-    else if (['bodypartexamined', 'scanningsequence', 'sequencevariant', 'scanoptions', 'mracquisition', 'slice', 'echo', 'repetition', 'frequency', 'nucleus', 'coil', 'matrix', 'flip', 'bandwidth', 'software', 'protocol'].some(s => k.includes(s))) cat = 'parameters';
-    else if (['studyinstance', 'seriesinstance', 'instance', 'frame', 'imagesin', 'positionreference', 'sliceLocation'].some(s => k.includes(s))) cat = 'identifiers';
-    else if (['imageposition', 'imageorientation', 'rows', 'columns', 'pixel', 'photometric', 'samplesperpixel', 'bits', 'highbit', 'pixrepresentation', 'lossy'].some(s => k.includes(s))) cat = 'geometry';
+    else if (
+      k.includes('study') ||
+      k.includes('contentdate') ||
+      k.includes('studydate')
+    )
+      cat = 'study';
+    else if (k.includes('series') || k.includes('referencedimage'))
+      cat = 'series';
+    else if (
+      ['manufacturer', 'model', 'stationname'].some((s) => k.includes(s))
+    )
+      cat = 'equipment';
+    else if (
+      k.startsWith('private') ||
+      k.startsWith('userdata') ||
+      k.startsWith('normalization')
+    )
+      cat = 'private';
+    else if (
+      [
+        'bodypartexamined',
+        'scanningsequence',
+        'sequencevariant',
+        'scanoptions',
+        'mracquisition',
+        'slice',
+        'echo',
+        'repetition',
+        'frequency',
+        'nucleus',
+        'coil',
+        'matrix',
+        'flip',
+        'bandwidth',
+        'software',
+        'protocol',
+      ].some((s) => k.includes(s))
+    )
+      cat = 'parameters';
+    else if (
+      [
+        'studyinstance',
+        'seriesinstance',
+        'instance',
+        'frame',
+        'imagesin',
+        'positionreference',
+        'slicelocation',
+      ].some((s) => k.includes(s))
+    )
+      cat = 'identifiers';
+    else if (
+      [
+        'imageposition',
+        'imageorientation',
+        'rows',
+        'columns',
+        'pixel',
+        'photometric',
+        'samplesperpixel',
+        'bits',
+        'highbit',
+        'pixrepresentation',
+        'lossy',
+      ].some((s) => k.includes(s))
+    )
+      cat = 'geometry';
     else if (k.includes('performedprocedurestep')) cat = 'procedure';
 
     entriesByCat[cat] = entriesByCat[cat] || [];
     entriesByCat[cat].push([key, val]);
   });
 
+  /* --------------------------------- UI --------------------------------- */
   return (
-    <div className="dicom-metadata-panel">
-      <h5>Extracted Metadata</h5>
+    <div className={`dicom-metadata-panel ${className ?? ''}`} style={style}>
+      {showTitle && <h5>{title}</h5>}
 
-      <div className="metadata-checkbox-row mb-3">
-        {Object.entries(CATEGORIES).map(([cat, label]) => (
-          <div key={cat} className="form-check form-check-inline">
-            <input
-              className="form-check-input"
-              type="checkbox"
-              id={`cb-${cat}`}
-              checked={visible[cat]}
-              onChange={() => toggle(cat)}
-            />
-            <label className="form-check-label" htmlFor={`cb-${cat}`}>
-              {label}
-            </label>
-          </div>
-        ))}
-      </div>
+      {showCategoryToggles && (
+        <div className="metadata-checkbox-row mb-3">
+          {Object.entries(CATEGORIES).map(([cat, label]) => (
+            <div key={cat} className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id={`cb-${cat}`}
+                checked={visible[cat]}
+                onChange={() => toggle(cat)}
+              />
+              <label className="form-check-label" htmlFor={`cb-${cat}`}>
+                {label}
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
 
       {Object.entries(CATEGORIES).map(([cat, label]) =>
         visible[cat] && entriesByCat[cat] ? (
           <section key={cat} className="mb-4">
-            <h6>{label}</h6>
-            <table className="table table-sm">
-              <tbody>
-                {entriesByCat[cat].map(([k, v]) => (
-                  <tr key={k}>
-                    <td><code>{k}</code></td>
-                    <td>{v}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {collapsibleSections ? (
+              <details open>
+                <summary className="h6 mb-2">{label}</summary>
+                <SectionTable
+                  entries={entriesByCat[cat]}
+                  renderEntry={renderEntry}
+                />
+              </details>
+            ) : (
+              <>
+                <h6>{label}</h6>
+                <SectionTable
+                  entries={entriesByCat[cat]}
+                  renderEntry={renderEntry}
+                />
+              </>
+            )}
           </section>
         ) : null
       )}
     </div>
   );
 };
+
+const SectionTable: React.FC<{
+  entries: [string, string][];
+  renderEntry?: (k: string, v: string) => React.ReactNode;
+}> = ({ entries, renderEntry }) => (
+  <table className="table table-sm">
+    <tbody>
+      {entries.map(([k, v]) => (
+        <tr key={k}>
+          <td>
+            <code>{k}</code>
+          </td>
+          <td>{renderEntry ? renderEntry(k, v) : v}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
 
 export default DicomMetadataPanel;
