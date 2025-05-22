@@ -127,32 +127,32 @@ const BaseTemplate: StoryFn<Args> = ({
 /* ------------------------------------------------------------------ */
 /*  Story 1 – Manual playground                                       */
 /* ------------------------------------------------------------------ */
-export const Playground: StoryObj<Args> = BaseTemplate.bind({});
-Playground.args = {
-  showSidebar: true,
-  brightnessMode: false,
-  measurementMode: false,
-  annotationMode: false,
-  panMode: false,
-  layout: "horizontal",
-  buttons: DESKTOP_BUTTONS,
+// export const Playground: StoryObj<Args> = BaseTemplate.bind({});
+// Playground.args = {
+//   showSidebar: true,
+//   brightnessMode: false,
+//   measurementMode: false,
+//   annotationMode: false,
+//   panMode: false,
+//   layout: "horizontal",
+//   buttons: DESKTOP_BUTTONS,
+// };
+
+/* ------------------------------------------------------------------ */
+/*  Story 2 – Switch schema variants                                  */
+/* ------------------------------------------------------------------ */
+const SchemaTemplate: StoryFn<Args> = (args, context) => {
+  const { schemaVariant = "desktop", ...rest } = args;
+  const variant = (schema as any).variants[schemaVariant] ?? {};
+  const { layout = "horizontal", buttons = DESKTOP_BUTTONS } = variant;
+  return BaseTemplate({
+    ...rest,
+    layout: layout as ToolbarLayout,
+    buttons: buttons as ButtonCfg[],
+  }, context);
 };
 
-// /* ------------------------------------------------------------------ */
-// /*  Story 2 – Switch schema variants                                  */
-// /* ------------------------------------------------------------------ */
-// const SchemaTemplate: StoryFn<Args> = (args, context) => {
-//   const { schemaVariant = "desktop", ...rest } = args;
-//   const variant = (schema as any).variants[schemaVariant] ?? {};
-//   const { layout = "horizontal", buttons = DESKTOP_BUTTONS } = variant;
-//   return BaseTemplate({
-//     ...rest,
-//     layout: layout as ToolbarLayout,
-//     buttons: buttons as ButtonCfg[],
-//   }, context);
-// };
-
-// export const SchemaVariant: StoryObj<Args> = SchemaTemplate.bind({});
-// SchemaVariant.args = {
-//   schemaVariant: "desktop",
-// };
+export const SchemaVariant: StoryObj<Args> = SchemaTemplate.bind({});
+SchemaVariant.args = {
+  schemaVariant: "desktop",
+};

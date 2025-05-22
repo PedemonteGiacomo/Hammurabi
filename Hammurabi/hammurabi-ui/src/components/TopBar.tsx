@@ -1,25 +1,64 @@
-import React, { useState, useRef, useEffect } from 'react';
+/* ------------------------------------------------------------------ */
+/*  TopBar.tsx – versione full-props                                  */
+/* ------------------------------------------------------------------ */
+import React, { useState, useRef, useEffect, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
-/**
- * TopBar Component
- * -------------------------------------------------
- * • Logo (link a “/”)
- * • Badge con la versione di build (ricavata da window._env_.BUILD_VERSION)
- * • Icona utente → dropdown con e‑mail/nome + Logout (Cognito)
- */
-const TopBar: React.FC = () => {
+export interface TopBarProps {
+  /* ----------- visibilità elementi ----------- */
+  showLogo?: boolean;
+  showVersion?: boolean;
+
+  /** Stile menù utente:
+   *  • "full"        → icona + dropdown con email + nome
+   *  • "dropdown"    → icona + dropdown soltanto con email
+   *  • "icon-only"   → solo icona, niente dropdown
+   */
+  userMenuStyle?: 'full' | 'dropdown' | 'icon-only';
+
+  /* --------------- override asset ------------- */
+  logoSrc?: string;
+  userIconSrc?: string;
+
+  /* --------------- altri override ------------- */
+  logoLinkUrl?: string;
+  buildVersionOverride?: string;
+  className?: string;
+  style?: React.CSSProperties;
+
+  /** Callback logout custom (default = redirect Cognito) */
+  onLogout?: () => void;
+
+  /** Slot per elementi extra (es. pulsanti) */
+  rightSlot?: ReactNode;
+}
+
+const TopBar: React.FC<TopBarProps> = ({
+  showLogo = true,
+  showVersion = true,
+  userMenuStyle = 'full',
+  logoSrc = '/assets/esaote_vector.svg',
+  userIconSrc = '/assets/user-circle-svgrepo-com.svg',
+  logoLinkUrl = '/',
+  buildVersionOverride,
+  className,
+  style,
+  onLogout,
+  rightSlot,
+}) => {
   const auth = useAuth();
 
   /* -------------------------  UI state  ------------------------ */
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const toggleDropdown = () => setDropdownVisible(prev => !prev);
+  const toggleDropdown = () => {
+    if (userMenuStyle !== 'icon-only') setDropdownVisible((prev) => !prev);
+  };
 
   /* --------------------  versione di build  -------------------- */
-  // Se l’app gira in dev mode CRA inietta anche REACT_APP_VERSION
   const buildVersion =
+    buildVersionOverride ??
     (window as any)._env_?.BUILD_VERSION ??
     process.env.REACT_APP_VERSION ??
     'dev';
@@ -27,7 +66,10 @@ const TopBar: React.FC = () => {
   /* -------------  chiudi dropdown se clic fuori  --------------- */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDropdownVisible(false);
       }
     };
@@ -37,10 +79,11 @@ const TopBar: React.FC = () => {
 
   /* ----------------------  Logout (Cognito)  ------------------- */
   const signOutRedirect = () => {
-    const clientId = window._env_.REACT_APP_COGNITO_CLIENT_ID || '';
-    const logoutUri = window._env_.REACT_APP_LOGOUT_URI || '';
-    const cognitoDomain = window._env_.REACT_APP_COGNITO_DOMAIN || '';
-    const redirectUri = window._env_.REACT_APP_COGNITO_REDIRECT_URI || '';
+    const env = (window as any)._env_ ?? {};
+    const clientId = env.REACT_APP_COGNITO_CLIENT_ID || '';
+    const logoutUri = env.REACT_APP_LOGOUT_URI || '';
+    const cognitoDomain = env.REACT_APP_COGNITO_DOMAIN || '';
+    const redirectUri = env.REACT_APP_COGNITO_REDIRECT_URI || '';
 
     const logoutUrl =
       `${cognitoDomain}/logout?client_id=${clientId}` +
@@ -50,44 +93,53 @@ const TopBar: React.FC = () => {
     window.location.href = logoutUrl;
   };
 
-  const handleLogout = () => signOutRedirect();
+  const handleLogout = () => (onLogout ? onLogout() : signOutRedirect());
 
   /* ---------------------------  JSX  --------------------------- */
   return (
-    <nav className="topbar-container">
+    <nav className={`topbar-container ${className ?? ''}`} style={style}>
       <div className="topbar-content">
         {/* Logo */}
-        <Link to="/">
-          <img
-            className="topbar-logo"
-            src="/assets/esaote_vector.svg"
-            alt="Esaote Logo"
-          />
-        </Link>
+        {showLogo && (
+          <Link to={logoLinkUrl}>
+            <img className="topbar-logo" src={logoSrc} alt="Logo" />
+          </Link>
+        )}
 
-        {/* spacer + badge versione */}
+        {/* spacer + versione */}
         <div className="topbar-spacer" />
-        <span className="build-badge">v{buildVersion}</span>
+        {showVersion && <span className="build-badge">v{buildVersion}</span>}
 
-        {/* User icon + dropdown */}
+        {/* slot opzionale (es. pulsanti extra) */}
+        {rightSlot}
+
+        {/* User icon + dropdown (se abilitato) */}
         <div style={{ position: 'relative' }}>
           <img
             className="topbar-user-icon"
-            src="/assets/user-circle-svgrepo-com.svg"
-            alt="User Logo"
+            src={userIconSrc}
+            alt="User Icon"
             onClick={toggleDropdown}
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: userMenuStyle !== 'icon-only' ? 'pointer' : 'default' }}
           />
 
-          {dropdownVisible && (
+          {userMenuStyle !== 'icon-only' && dropdownVisible && (
             <div ref={dropdownRef} className="topbar-dropdown">
-              <div style={{ marginBottom: '0.5rem', color: 'black' }}>
-                <strong>{auth.user?.profile.email}</strong>
-                <br />
-                <strong>
-                  {auth.user?.profile.given_name} {auth.user?.profile.family_name}
-                </strong>
-              </div>
+              {userMenuStyle === 'full' && (
+                <div style={{ marginBottom: '0.5rem', color: 'black' }}>
+                  <strong>{auth.user?.profile.email}</strong>
+                  <br />
+                  <strong>
+                    {auth.user?.profile.given_name}{' '}
+                    {auth.user?.profile.family_name}
+                  </strong>
+                </div>
+              )}
+              {userMenuStyle === 'dropdown' && (
+                <div style={{ marginBottom: '0.5rem', color: 'black' }}>
+                  <strong>{auth.user?.profile.email}</strong>
+                </div>
+              )}
               <button className="logout-btn" onClick={handleLogout}>
                 Log out
               </button>
