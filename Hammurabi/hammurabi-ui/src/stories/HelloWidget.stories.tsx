@@ -14,13 +14,13 @@ export const Default: Story = {
   // no args: uses on-disk schema
 };
 
-export const CustomColors: Story = {
-  args: {
-    __override__: {
-      background: '#000',
-      text: '#0f0',
-      padding: '2rem',
-      borderRadius: 12,
-    },
-  },
-};
+// export const CustomColors: Story = {
+//   args: {
+//     __override__: {
+//       background: '#000',
+//       text: '#0f0',
+//       padding: '2rem',
+//       borderRadius: 12,
+//     },
+//   },
+// };
