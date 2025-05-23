@@ -84,13 +84,10 @@ export const Measurements: Story = {
   },
 };
 
-export const PanAnnotate: Story = {
+export const Pan: Story = {
   args: {
     series: series50,
     panMode: true,
-    annotationMode: true,
-    initialZoomStep: 2,
-    initialBrightness: 60,
-    initialContrast: 70,
+    initialZoomStep: 2
   },
 };
