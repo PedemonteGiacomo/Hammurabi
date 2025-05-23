@@ -1,6 +1,8 @@
+import React, { useRef } from "react";   
 import type { Meta, StoryObj } from "@storybook/react";
 import NewViewer, { ViewerProps } from "../components/newViewer";
 import type { SeriesInfo } from "../components/NestedDicomTable";
+           
 
 const series50: SeriesInfo = {
   seriesUID: "1.2.840.loop.50",
@@ -91,3 +93,83 @@ export const Pan: Story = {
     initialZoomStep: 2
   },
 };
+
+/* ────────────────────────────────────────────────────────────── */
+/*  FULLSCREEN MODE                                              */
+/* ────────────────────────────────────────────────────────────── */
+export const Fullscreen: Story = {
+  name: 'Fullscreen demo',
+  render: (args) => {
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    const openFullscreen = () => {
+      const el = wrapperRef.current;
+      if (!el) return;
+
+      const req =
+        el.requestFullscreen ||
+        // Safari
+        (el as any).webkitRequestFullscreen ||
+        // Firefox
+        (el as any).mozRequestFullScreen ||
+        // IE / Edge
+        (el as any).msRequestFullscreen;
+
+      req?.call(el);
+    };
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1rem',
+          height: '100%',
+        }}
+      >
+        <button
+          onClick={openFullscreen}
+          style={{
+            padding: '14px 28px',
+            fontSize: '1.05rem',
+            fontWeight: 600,
+            color: '#fff',
+            background: 'linear-gradient(135deg,#0062ff 0%,#00c8ff 100%)',
+            border: 'none',
+            borderRadius: 8,
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+            transition: 'transform 0.15s',
+          }}
+          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.96)')}
+          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          🖥️  Open the Viewer in fullscreen mode
+        </button>
+
+        <div
+          ref={wrapperRef}
+          style={{
+            width: '100%',
+            height: 'calc(100% - 72px)', // spazio per il bottone
+            background: '#000',
+          }}
+        >
+          <NewViewer {...args} />
+        </div>
+      </div>
+    );
+  },
+  args: {
+    series: series50,
+    showSlider: true,
+    showLoopBtn: true,
+    fps: 20,
+    loop: false,
+  },
+  parameters: {
+    controls: { hideNoControlsWarning: true },
+  },
+};
+

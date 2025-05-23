@@ -11,8 +11,8 @@
       }
     },
     {
-      "name": "NewViewer",
-      "props": {
+      "name": "",
+      "props": {NewViewer
         "/* non metti qui series: verrà iniettato dinamicamente */": null
       }
     },

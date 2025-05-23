@@ -254,7 +254,7 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>((props, ref) => {
 
     initialFrame = 0,
     initialZoomStep = 0,
-    initialBrightness = 50,
+    initialBrightness = 96,
     initialContrast = 50,
     fps: fpsProp = 20,
     loop = false,
