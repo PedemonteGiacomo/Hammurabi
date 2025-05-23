@@ -435,16 +435,16 @@ const NewViewer = forwardRef<ViewerHandles, ViewerProps>((props, ref) => {
         />,
         <Circle key={`c1-${k}`} cx={p1.x} cy={p1.y} r={3} fill="#00eaff" />,
         <Circle key={`c2-${k}`} cx={p2.x} cy={p2.y} r={3} fill="#00eaff" />,
-        <Text
-          key={`t-${k}`}
-          x={mid.x}
-          y={mid.y - 8}
-          fontSize={12}
-          fill="#fff"
-          textAnchor="middle"
-        >
-          {dist.toFixed(0)} px
-        </Text>,
+        // <Text
+        //   key={`t-${k}`}
+        //   x={mid.x}
+        //   y={mid.y - 8}
+        //   fontSize={12}
+        //   fill="#fff"
+        //   textAnchor="middle"
+        // >
+        //   {dist.toFixed(0)} px
+        // </Text>,
       );
     };
     measurements.forEach((m, i) => add(m, false, String(i)));
