@@ -1,24 +1,8 @@
 {
   "components": [
-    {
-      "name": "TopBar",
-      "props": {}
-    },
-    {
-      "name": "ViewerToolbar",
-      "props": {
-        "/* eventuali override statici, es: showSidebar: false */": null
-      }
-    },
-    {
-      "name": "",
-      "props": {NewViewer
-        "/* non metti qui series: verrà iniettato dinamicamente */": null
-      }
-    },
-    {
-      "name": "Sidebar",
-      "props": {}
-    }
+    { "name": "TopBar",         "props": {} },
+    { "name": "ViewerToolbar",  "props": {} },
+    { "name": "NewViewer",      "props": {} },
+    { "name": "Sidebar",        "props": {} }
   ]
 }
