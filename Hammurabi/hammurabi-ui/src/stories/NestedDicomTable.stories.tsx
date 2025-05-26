@@ -1,18 +1,21 @@
+// src/stories/NestedDicomTable.stories.tsx
 import { Meta, StoryObj } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import NestedDicomTable, {
-  PatientInfo,
-  SeriesInfo,
-} from '../components/NestedDicomTable';
+import { MemoryRouter } from 'react-router-dom';
+import NestedDicomTable, { PatientInfo } from '../components/NestedDicomTable';
 import sampleData from '../data/dicomData_updated.json';
 
 const meta: Meta<typeof NestedDicomTable> = {
   title: 'Components/NestedDicomTable',
   component: NestedDicomTable,
+  decorators: [
+    (Story) => (
+      <MemoryRouter initialEntries={['/']}>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   argTypes: {
     data: { control: false },
-    onSelectSeries: { action: 'onSelectSeries' },
-    onSelectSeries2: { action: 'onSelectSeries2' },
     showPatientCount: { control: 'boolean' },
     initiallyExpandedPatients: { control: 'object' },
     initiallyExpandedStudies: { control: 'object' },
@@ -30,8 +33,6 @@ type Story = StoryObj<typeof NestedDicomTable>;
 export const Default: Story = {
   args: {
     data: sampleData as PatientInfo[],
-    onSelectSeries: action('select-1'),
-    onSelectSeries2: action('select-2'),
     showPatientCount: false,
     rowHoverColor: '#222',
   },
@@ -46,6 +47,7 @@ export const WithCounters: Story = {
 };
 
 export const InitiallyExpanded: Story = {
+  name: 'Initially expanded',
   args: {
     ...Default.args,
     initiallyExpandedPatients: [(sampleData as PatientInfo[])[0].patientID],
@@ -56,6 +58,7 @@ export const InitiallyExpanded: Story = {
 };
 
 export const CustomIconsAndStyle: Story = {
+  name: 'Custom icons & style',
   args: {
     ...Default.args,
     rowHoverColor: '#003366',
@@ -63,12 +66,3 @@ export const CustomIconsAndStyle: Story = {
     tableClassName: 'table table-striped',
   },
 };
-
-// export const EmptyData: Story = {
-//   args: {
-//     data: [],
-//     onSelectSeries: action('noop'),
-//     onSelectSeries2: undefined,
-//     noDataMessage: 'Nothing to display 🤷‍♂️',
-//   },
-// };

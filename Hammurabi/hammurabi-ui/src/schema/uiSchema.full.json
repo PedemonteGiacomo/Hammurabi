@@ -1,0 +1,272 @@
+{
+  "pages": {
+    "selection": {
+      "path": "/",
+      "children": [
+        {
+          "component": "Container",
+          "props": {
+            "className": "selection-page-container"
+          },
+          "children": [
+            {
+              "component": "TopBar"
+            },
+            {
+              "component": "Container",
+              "props": {
+                "className": "study-list-wrapper"
+              },
+              "children": [
+                {
+                  "component": "Container",
+                  "props": {
+                    "className": "study-list-header"
+                  },
+                  "children": [
+                    {
+                      "component": "Title",
+                      "props": {
+                        "text": "Studies"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "component": "NestedDicomTable"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "viewer": {
+      "path": "/viewer",
+      "children": [
+        {
+          "component": "Container",
+          "props": {
+            "className": "viewer-page-container"
+          },
+          "children": [
+            {
+              "component": "TopBar"
+            },
+            {
+              "component": "Container",
+              "props": {
+                "className": "viewer-info-row"
+              },
+              "children": [
+                {
+                  "component": "InfoBlock",
+                  "props": {
+                    "label": "Patient ID",
+                    "valueKey": "patientId"
+                  }
+                },
+                {
+                  "component": "InfoBlock",
+                  "props": {
+                    "label": "Study",
+                    "valueKey": "studyDescription"
+                  }
+                },
+                {
+                  "component": "InfoBlock",
+                  "props": {
+                    "label": "Series",
+                    "valueKey": "seriesDescription"
+                  }
+                }
+              ]
+            },
+            {
+              "component": "ViewerToolbar"
+            },
+            {
+              "component": "Container",
+              "props": {
+                "className": "viewer-main-row",
+                "style": {
+                  "flexDirection": "row"
+                }
+              },
+              "responsive": {
+                "mobile": {
+                  "props": {
+                    "style": {
+                      "flexDirection": "column"
+                    }
+                  }
+                }
+              },
+              "children": [
+                {
+                  "component": "Container",
+                  "props": {
+                    "className": "viewer-container",
+                    "style": {
+                      "flex": 2
+                    }
+                  },
+                  "children": [
+                    {
+                      "component": "NewViewer"
+                    }
+                  ]
+                },
+                {
+                  "component": "Container",
+                  "props": {
+                    "className": "sidebar-container"
+                  },
+                  "children": [
+                    {
+                      "component": "Sidebar"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "hello": {
+      "path": "/hello",
+      "children": [
+        {
+          "component": "TopBar"
+        },
+        {
+          "component": "Container",
+          "props": {
+            "style": {
+              "display": "flex",
+              "gap": "2rem",
+              "padding": "2rem"
+            }
+          },
+          "children": [
+            {
+              "component": "JSONEditor"
+            },
+            {
+              "component": "Container",
+              "props": {
+                "style": {
+                  "flex": 1,
+                  "display": "flex",
+                  "justifyContent": "center",
+                  "alignItems": "center"
+                }
+              },
+              "children": [
+                {
+                  "component": "HelloWidget"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "customViewer": {
+      "path": "/custom-viewer",
+      "children": [
+        {
+          "component": "Container",
+          "props": {
+            "className": "custom-viewer-page-container",
+            "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "height": "100vh",
+              "overflowY": "auto"
+            }
+          },
+          "children": [
+            {
+              "component": "TopBar"
+            },
+            {
+              "component": "Container",
+              "props": {
+                "className": "custom-header",
+                "style": {
+                  "padding": "1rem",
+                  "background": "black",
+                  "color": "white",
+                  "textAlign": "center",
+                  "borderBottom": "1px solid #ccc",
+                  "borderColor": "red"
+                }
+              },
+              "children": [
+                {
+                  "component": "Title",
+                  "props": {
+                    "text": "Custom DICOM Viewer"
+                  }
+                },
+                {
+                  "component": "Paragraph",
+                  "props": {
+                    "text": "This viewer is an example on how to create a custom viewer using Hammurabi UI design system. Reusing components like TopBar, ViewerToolbar, and Sidebar, without the need to create a new viewer from scratch."
+                  }
+                }
+              ]
+            },
+            {
+              "component": "Container",
+              "props": {
+                "className": "viewer-main-row",
+                "style": {
+                  "flexDirection": "row"
+                }
+              },
+              "responsive": {
+                "mobile": {
+                  "props": {
+                    "style": {
+                      "flexDirection": "column"
+                    }
+                  }
+                }
+              },
+              "children": [
+                {
+                  "component": "Container",
+                  "props": {
+                    "className": "viewer-container",
+                    "style": {
+                      "flex": 2
+                    }
+                  },
+                  "children": [
+                    {
+                      "component": "NewViewer"
+                    }
+                  ]
+                },
+                {
+                  "component": "Container",
+                  "props": {
+                    "className": "sidebar-container"
+                  },
+                  "children": [
+                    {
+                      "component": "Sidebar"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

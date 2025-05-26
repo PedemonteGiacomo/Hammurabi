@@ -1,8 +1,0 @@
-{
-  "components": [
-    { "name": "TopBar",         "props": {} },
-    { "name": "ViewerToolbar",  "props": {} },
-    { "name": "NewViewer",      "props": {} },
-    { "name": "Sidebar",        "props": {} }
-  ]
-}

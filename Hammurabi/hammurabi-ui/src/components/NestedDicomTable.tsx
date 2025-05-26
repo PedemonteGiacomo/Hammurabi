@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import uiSchemaFull from '../schema/uiSchema.full.json';
 import defaultDicomData from '../data/dicomData_updated.json';
 
 export interface SeriesInfo {
@@ -21,11 +23,6 @@ export interface PatientInfo {
 export interface NestedDicomTableProps {
   /** dataset; se omesso usa il JSON di default */
   data?: PatientInfo[];
-  /** callback pulsante VIEW 1 */
-  onSelectSeries: (s: SeriesInfo) => void;
-  /** callback pulsante VIEW 2 (facoltativo) */
-  onSelectSeries2?: (s: SeriesInfo) => void;
-
   /* ---------- UI/UX extra ---------- */
   showPatientCount?: boolean;
   initiallyExpandedPatients?: string[];
@@ -36,10 +33,26 @@ export interface NestedDicomTableProps {
   noDataMessage?: string;
 }
 
+// Helper per scoprire quali pagine hanno NewViewer
+function discoverViewerPages(): { key: string; path: string }[] {
+  const pages = uiSchemaFull.pages as Record<string, any>;
+  const result: { key: string; path: string }[] = [];
+  const containsNewViewer = (items: any[]): boolean => {
+    return items.some(item => {
+      if (item.component === 'NewViewer') return true;
+      return item.children && containsNewViewer(item.children);
+    });
+  };
+  for (const [key, def] of Object.entries(pages)) {
+    if (Array.isArray(def.children) && containsNewViewer(def.children)) {
+      result.push({ key, path: def.path });
+    }
+  }
+  return result;
+}
+
 const NestedDicomTable: React.FC<NestedDicomTableProps> = ({
   data,
-  onSelectSeries,
-  onSelectSeries2,
   showPatientCount = false,
   initiallyExpandedPatients = [],
   initiallyExpandedStudies = [],
@@ -48,22 +61,25 @@ const NestedDicomTable: React.FC<NestedDicomTableProps> = ({
   toggleIcons = { open: '▼', closed: '▶' },
   noDataMessage = 'No DICOM data',
 }) => {
-  const patients: PatientInfo[] = (data ?? (defaultDicomData as PatientInfo[]))
-    .filter((p) => p.studies?.length);
+  const navigate = useNavigate();
+  const patients: PatientInfo[] = (data ?? (defaultDicomData as PatientInfo[])).filter(
+    p => p.studies?.length
+  );
 
   const [expandedPatients, setExpandedPatients] =
     useState<string[]>(initiallyExpandedPatients);
   const [expandedStudies, setExpandedStudies] =
     useState<string[]>(initiallyExpandedStudies);
 
+  // Scopri dinamicamente tutte le pagine viewer nel JSON schema
+  const viewerPages = React.useMemo(() => discoverViewerPages(), []);
+
   const toggle = <T extends string>(
     arr: string[],
     set: React.Dispatch<React.SetStateAction<string[]>>,
-    id: T,
+    id: T
   ) =>
-    set((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
-    );
+    set(prev => (prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]));
 
   if (!patients.length) return <p>{noDataMessage}</p>;
 
@@ -73,37 +89,30 @@ const NestedDicomTable: React.FC<NestedDicomTableProps> = ({
         <thead>
           <tr>
             <th style={{ width: '30%' }}>
-              Patient ID
-              {showPatientCount && ` (${patients.length})`}
+              Patient ID{showPatientCount && ` (${patients.length})`}
             </th>
             <th>Studies / Series Info</th>
           </tr>
         </thead>
         <tbody>
-          {patients.map((patient) => {
+          {patients.map(patient => {
             const pOpen = expandedPatients.includes(patient.patientID);
-
             return (
               <React.Fragment key={patient.patientID}>
                 <tr
                   onClick={() =>
                     toggle(expandedPatients, setExpandedPatients, patient.patientID)
                   }
-                  style={{
-                    cursor: 'pointer',
-                    background: pOpen ? rowHoverColor : undefined,
-                  }}
+                  style={{ cursor: 'pointer', background: pOpen ? rowHoverColor : undefined }}
                 >
                   <td>{patient.patientID}</td>
                   <td>{pOpen ? `${toggleIcons.open} Hide` : `${toggleIcons.closed} Show`}</td>
                 </tr>
 
                 {pOpen &&
-                  patient.studies.map((study) => {
+                  patient.studies.map(study => {
                     const sOpen = expandedStudies.includes(study.studyUID);
-                    const list = study.series.filter(
-                      (s) => s.imageFilePaths?.length,
-                    );
+                    const list = study.series.filter(s => s.imageFilePaths?.length);
                     if (!list.length) return null;
 
                     return (
@@ -118,44 +127,35 @@ const NestedDicomTable: React.FC<NestedDicomTableProps> = ({
                             <strong>Study UID:</strong> {study.studyUID}
                           </td>
                           <td>
-                            <strong>Date:</strong> {study.studyDate} |{' '}
-                            <strong>Description:</strong>{' '}
+                            <strong>Date:</strong> {study.studyDate} | <strong>Description:</strong>{' '}
                             {study.studyDescription}{' '}
                             {sOpen ? toggleIcons.open : toggleIcons.closed}
                           </td>
                         </tr>
 
                         {sOpen &&
-                          list.map((series) => (
+                          list.map(series => (
                             <tr key={series.seriesUID}>
                               <td style={{ paddingLeft: '4rem' }}>
                                 <em>Series UID:</em> {series.seriesUID}
                               </td>
                               <td>
-                                <em>Description:</em> {series.seriesDescription} |{' '}
-                                <em>Images:</em> {series.numberOfImages}
-                                <button
-                                  className="btn btn-sm btn-primary"
-                                  style={{ marginLeft: '1rem' }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSelectSeries(series);
-                                  }}
-                                >
-                                  View
-                                </button>
-                                {onSelectSeries2 && (
+                                <em>Description:</em> {series.seriesDescription} | <em>Images:</em>{' '}
+                                {series.numberOfImages}
+                                {/* Render a button for each viewer page */}
+                                {viewerPages.map(vp => (
                                   <button
-                                    className="btn btn-sm btn-secondary"
-                                    style={{ marginLeft: '0.5rem' }}
-                                    onClick={(e) => {
+                                    key={vp.key}
+                                    className="btn btn-sm btn-primary"
+                                    style={{ marginLeft: '1rem' }}
+                                    onClick={e => {
                                       e.stopPropagation();
-                                      onSelectSeries2(series);
+                                      navigate(vp.path, { state: { series } });
                                     }}
                                   >
-                                    View 2
+                                    View ({vp.key})
                                   </button>
-                                )}
+                                ))}
                               </td>
                             </tr>
                           ))}
