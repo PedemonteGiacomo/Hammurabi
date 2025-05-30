@@ -4,8 +4,8 @@
 
 window._env_ = {
   // Each line references an environment variable that you want to inject at runtime.
-  REACT_APP_COGNITO_AUTHORITY: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_LfAUnhl34",
-  REACT_APP_COGNITO_CLIENT_ID: "7h3sp7rtd8p9oa4e9vehksrpr6",
+  REACT_APP_COGNITO_AUTHORITY: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_tkXJ5n9B4",
+  REACT_APP_COGNITO_CLIENT_ID: "4po1luage9o30sjh85stv5c1pg",
   REACT_APP_COGNITO_REDIRECT_URI: "http://localhost",
   REACT_APP_COGNITO_SCOPE: "profile openid email",
   REACT_APP_LOGOUT_URI: "http://localhost/aws-signout",
