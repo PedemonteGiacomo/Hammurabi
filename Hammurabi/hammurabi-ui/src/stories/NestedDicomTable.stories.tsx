@@ -1,5 +1,5 @@
 // src/stories/NestedDicomTable.stories.tsx
-import { Meta, StoryObj } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react-webpack5';
 import { MemoryRouter } from 'react-router-dom';
 import NestedDicomTable, { PatientInfo } from '../components/NestedDicomTable';
 import sampleData from '../data/dicomData_updated.json';

@@ -2,7 +2,7 @@
 import '../src/styles/Hammurabi_style.css';  // il vostro CSS globale
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React from 'react';
-import type { Preview } from '@storybook/react';
+import type { Preview } from '@storybook/react-webpack5';
 import { ChakraProvider } from '@chakra-ui/react';
 import { withThemeByClassName } from '@storybook/addon-themes';
 

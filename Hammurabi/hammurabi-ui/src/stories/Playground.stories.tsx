@@ -8,7 +8,7 @@ import React, {
   useCallback,
   Fragment,
 } from "react";
-import type { Meta, StoryFn } from "@storybook/react";
+import type { Meta, StoryFn } from "@storybook/react-webpack5";
 
 import ViewerToolbar from "../components/ViewerToolbar";
 import NewViewer, { ViewerHandles } from "../components/newViewer";

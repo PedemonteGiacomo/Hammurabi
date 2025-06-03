@@ -1,5 +1,5 @@
 import React, { useRef } from "react";   
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-webpack5";
 import NewViewer, { ViewerProps } from "../components/newViewer";
 import type { SeriesInfo } from "../components/NestedDicomTable";
            

@@ -4,7 +4,7 @@
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext, type AuthContextProps } from 'react-oidc-context';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-webpack5';
 import type { IdTokenClaims, User } from 'oidc-client-ts';
 import TopBar, { TopBarProps } from '../components/TopBar';
 

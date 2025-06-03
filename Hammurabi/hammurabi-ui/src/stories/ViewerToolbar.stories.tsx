@@ -1,5 +1,5 @@
 // src/stories/ViewerToolbar.stories.tsx
-import type { Meta, StoryFn, StoryObj } from "@storybook/react";
+import type { Meta, StoryFn, StoryObj } from "@storybook/react-webpack5";
 import ViewerToolbar, {
   ButtonCfg,
   ToolbarLayout,
