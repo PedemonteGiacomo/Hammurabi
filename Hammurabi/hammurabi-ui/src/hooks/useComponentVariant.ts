@@ -7,10 +7,29 @@ import type { Device } from "./useDeviceVariant";
 /*    false  = NON entra nelle sub-directory                           */
 /*    /\.schema\.json$/ = solo quei file                               */
 /* ------------------------------------------------------------------ */
-const schemaCtx = require.context(
-  "../schema/components",  // cartella
-  false,                   // no sub-folder
-  /\.schema\.json$/        // regex
+let requireContext: any = (require as any).context;
+if (typeof requireContext !== "function" && process.env.NODE_ENV === "test") {
+  const fs = require("fs");
+  const path = require("path");
+  try {
+    require("ts-node/register/transpile-only");
+  } catch {}
+  requireContext = (dir: string, _sub: boolean, regex: RegExp) => {
+    const base = path.resolve(__dirname, dir);
+    const keys = fs
+      .readdirSync(base)
+      .filter((f: string) => regex.test("./" + f))
+      .map((f: string) => "./" + f);
+    const fn = (key: string) => require(path.join(base, key.slice(2)));
+    fn.keys = () => keys;
+    return fn;
+  };
+}
+
+const schemaCtx = requireContext(
+  "../schema/components",
+  false,
+  /\.schema\.json$/
 );
 
 /* ------------------------------------------------------------------ */
