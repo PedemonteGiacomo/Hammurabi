@@ -37,7 +37,7 @@ const schemaCtx = requireContext(
 /* ------------------------------------------------------------------ */
 const SCHEMAS: Record<string, any> = {};
 
-schemaCtx.keys().forEach((k) => {
+schemaCtx.keys().forEach((k: string) => {
   const name = k.replace("./", "").replace(".schema.json", ""); // "NewViewer"
   // quando CRA compila JSON li esporta sia come default sia come modulo
   const schema = (schemaCtx(k) as any).default ?? schemaCtx(k);
