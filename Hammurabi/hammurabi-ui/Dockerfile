@@ -2,7 +2,7 @@
 # Stage 1 – build del front‑end React
 # ------------------------------------------------------------------
     
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 
     # ► TAG di versione passato dalla pipeline; default = dev
 ARG VERSION_INFO=dev
