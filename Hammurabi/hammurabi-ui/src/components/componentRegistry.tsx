@@ -1,18 +1,42 @@
-// src/components/componentRegistry.ts
-// Automatically discover all components in this folder and register them by
-// filename. Any file exporting a default React component will be available to
-// the schema without manual edits.
+import { Button } from "@chakra-ui/react";
 
-const ctx = require.context("./", false, /^[A-Z].*\.tsx$/);
+/**
+ * Automatically collect all React components in this folder so new widgets can
+ * be added without editing this file.  Components must use a capitalized
+ * filename and default export.
+ */
+let requireContext: any = (require as any).context;
+if (typeof requireContext !== "function" && process.env.NODE_ENV === "test") {
+  const fs = require("fs");
+  const path = require("path");
+  requireContext = (dir: string, _sub: boolean, regex: RegExp) => {
+    const base = path.resolve(__dirname, dir);
+    const keys = fs
+      .readdirSync(base)
+      .filter((f: string) => regex.test("./" + f))
+      .map((f: string) => "./" + f);
+    const fn = (key: string) => require(path.join(base, key.slice(2)));
+    fn.keys = () => keys;
+    return fn;
+  };
+}
+
+const ctx = requireContext("./", false, /^[A-Z][A-Za-z0-9]+\.tsx$/);
 
 export const componentRegistry: Record<string, React.ComponentType<any>> = {};
 
-ctx.keys().forEach((k) => {
+ctx.keys().forEach((k: string) => {
   const name = k.replace("./", "").replace(/\.tsx$/, "");
-  if (name === "componentRegistry" || name === "SchemaRenderer") return;
-  const mod = ctx(k) as { default: React.ComponentType<any> };
-  componentRegistry[name] = mod.default;
+  // Skip this file and the renderer itself
+  if (name === "componentRegistry" || name === "SchemaRenderer") {
+    return;
+  }
+  const mod = ctx(k) as any;
+  const Comp = mod.default ?? mod[name];
+  if (Comp) {
+    componentRegistry[name] = Comp;
+  }
 });
 
-// Components located elsewhere can still be added manually below if needed.
-export { Button } from "@chakra-ui/react";
+// Include Chakra's Button manually
+componentRegistry["Button"] = Button;

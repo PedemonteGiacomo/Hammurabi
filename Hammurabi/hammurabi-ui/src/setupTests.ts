@@ -4,8 +4,9 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
-// Vitest doesn't provide Webpack's `require.context` which the app relies on
-// for component discovery. Provide a simple stub so tests don't crash.
+// Vitest runs in a Node environment where Webpack's `require.context`
+// doesn't exist. Polyfill a minimal stub so hooks relying on it don't
+// throw errors during tests.
 if (typeof (require as any).context === 'undefined') {
   (require as any).context = () => {
     const fn = () => ({});
