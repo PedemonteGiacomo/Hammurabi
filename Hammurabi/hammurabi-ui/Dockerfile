@@ -10,7 +10,7 @@ ARG VERSION_INFO=dev
 WORKDIR /app
     
     # Solo i package* per sfruttare la cache layer
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps
     
     # Copia il resto del codice
