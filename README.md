@@ -57,6 +57,16 @@ pip install -r requirements.txt
 cdk deploy ReactCdkCompleteStack
 ```
 
+### Quick setup
+
+Run `setup_env.sh` from the repository root to prepare both the CDK and UI
+environments. The script creates a Python virtual environment, installs CDK
+dependencies and fetches Node packages for the React front‑end.
+
+```bash
+./setup_env.sh
+```
+
 ## CI/CD
 
 `.github/workflows/ci.yml` builds the UI Docker image, pushes it to ECR, deploys the CDK stack and performs a blue/green ECS deployment through CodeDeploy. Google OAuth secrets are injected during the workflow.
