@@ -1,4 +1,3 @@
-// src/components/componentRegistry.ts
 // Automatically discover all components in this folder and register them by
 // filename. Any file exporting a default React component will be available to
 // the schema without manual edits.

@@ -2,12 +2,12 @@
   "variants": {
     "desktop": {
       "width": 300,
-      "height": "100vh",
+      "height": "100%",
       "collapsible": true
     },
     "tablet": {
       "width": 250,
-      "height": "100vh",
+      "height": "100%",
       "collapsible": true
     },
     "mobile": {

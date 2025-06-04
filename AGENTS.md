@@ -1,18 +1,24 @@
 # Contributor Guide
 
 ## Repository Overview
-- `Hammurabi/hammurabi-ui/` – React/TypeScript front‑end.
+- `Hammurabi/hammurabi-ui/` – React/TypeScript front‑end (Create React App + Craco).
 - `hammurabi-cdk/` – AWS CDK stacks written in Python.
 - `Hammurabi/obtain_table_data.py` – CSV → JSON conversion utility.
 
 ## Dev Environment Setup
-- Run `./setup_env.sh` from the repo root. This installs Python packages in `hammurabi-cdk/.venv` and Node dependencies for the UI, and generates `public/env-config.js`.
-- Use Node 18+ and Python 3.9+.
+- Use Node 20+ and Python 3.11+.
+- Run `./setup_env.sh` from the repo root. It installs Node packages, creates `hammurabi-cdk/.venv` and generates `public/env-config.js`.
+- Activate the CDK environment when working in `hammurabi-cdk`: `source .venv/bin/activate`.
+
+## Dev Environment Tips
+- `npm start` inside `hammurabi-ui` launches the dev server.
+- `cdk synth` in `hammurabi-cdk` validates the stacks.
+- `node scripts/generate-env.js` regenerates UI config.
 
 ## Testing Instructions
-- **Front‑end**: `cd Hammurabi/hammurabi-ui && npx vitest run`
-- **Infrastructure**: `cd hammurabi-cdk && source .venv/bin/activate && pytest`
-- All tests must pass before committing. Front‑end specs use [Vitest](https://vitest.dev/) rather than Jest.
+- **Front‑end**: `cd Hammurabi/hammurabi-ui && CI=true npm test -- -w=0`
+- **Infrastructure**: `cd hammurabi-cdk && source .venv/bin/activate && pytest -q`
+- All tests must pass before committing. Add or update tests for any code you change.
 
 ## PR Instructions
 - Title format: `[Hammurabi] <title>`
