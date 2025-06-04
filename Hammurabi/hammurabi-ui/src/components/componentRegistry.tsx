@@ -1,30 +1,18 @@
 // src/components/componentRegistry.ts
-import TopBar from "./TopBar";
-import ViewerToolbar from "./ViewerToolbar";
-import NewViewer from "./newViewer";
-import Sidebar from "./Sidebar";
-import NestedDicomTable from "./NestedDicomTable";
-import HelloWidget from "./HelloWidget";
-import Title from "./Title";
-import Paragraph from "./Paragraph";
-import InfoBlock from "./InfoBlock";
-import JSONEditor from "./JSONEditor";
-import Container from "./Container";
-import ChartWidget from "./ChartWidget";
-import { Button } from "@chakra-ui/react";
+// Automatically discover all components in this folder and register them by
+// filename. Any file exporting a default React component will be available to
+// the schema without manual edits.
 
-export const componentRegistry: Record<string, React.ComponentType<any>> = {
-  TopBar,
-  ViewerToolbar,
-  NewViewer,
-  Sidebar,
-  NestedDicomTable,
-  HelloWidget,
-  Title,
-  Paragraph,
-  InfoBlock,
-  JSONEditor,
-  Container,
-  ChartWidget,
-  Button
-};
+const ctx = require.context("./", false, /^[A-Z].*\.tsx$/);
+
+export const componentRegistry: Record<string, React.ComponentType<any>> = {};
+
+ctx.keys().forEach((k) => {
+  const name = k.replace("./", "").replace(/\.tsx$/, "");
+  if (name === "componentRegistry" || name === "SchemaRenderer") return;
+  const mod = ctx(k) as { default: React.ComponentType<any> };
+  componentRegistry[name] = mod.default;
+});
+
+// Components located elsewhere can still be added manually below if needed.
+export { Button } from "@chakra-ui/react";
