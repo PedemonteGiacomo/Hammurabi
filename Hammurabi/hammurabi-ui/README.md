@@ -60,7 +60,7 @@ In the `hammurabi-ui` folder run this command to build the image:
 
     docker build -t hammurabi-ui-prod .
 
-# Nuove dipendenze nuova versione
+# New dependencies, new version
 
     npm install \
         @chakra-ui/react@^2.8.1 \

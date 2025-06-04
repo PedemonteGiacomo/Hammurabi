@@ -7,23 +7,23 @@ export interface DicomMetadataPanelProps {
   /** Mappa categoria → etichetta (override o aggiunte) */
   categories?: Record<string, string>;
 
-  /** Visibilità iniziale delle sezioni */
+  /** Initial visibility of sections */
   defaultVisible?: Record<string, boolean>;
 
-  /** Mostra i checkbox di filtro categorie */
+  /** Show category filter checkboxes */
   showCategoryToggles?: boolean;
 
-  /** Mostra/Nasconde completamente il titolo principale */
+  /** Show or hide the main title entirely */
   showTitle?: boolean;
   title?: React.ReactNode;
 
-  /** Abilita il collapse/expand delle singole sezioni (oltre ai checkbox) */
+  /** Enable collapsing/expanding individual sections (in addition to checkboxes) */
   collapsibleSections?: boolean;
 
-  /** Render custom di una riga metadata */
+  /** Custom renderer for a metadata row */
   renderEntry?: (key: string, value: string) => React.ReactNode;
 
-  /** Callback quando viene cambiata la visibilità di una categoria */
+  /** Callback when a category visibility changes */
   onToggleCategory?: (category: string, isVisible: boolean) => void;
 
   /** Styling */

@@ -81,9 +81,9 @@ const SchemaRenderer: React.FC = () => {
     return null;
   }
 
-  // 8) Funzione ricorsiva di rendering
+  // 8) Recursive render function
   const renderItem = (item: any): React.ReactNode => {
-    // Se definisci una visibilità per device, ometti il componente sul device sbagliato
+    // If you define visibility for a device, skip the component on the wrong device
 // src/components/SchemaRenderer.tsx, inside renderItem()
 if (item.visibleOn && !item.visibleOn.includes(device)) {
   // you did declare visibleOn = ["tablet","desktop"], but current device isn't in it
@@ -194,7 +194,7 @@ if (item.visibleOn && !item.visibleOn.includes(device)) {
         if (onClickProp === "switchToText") {
           dynamicProps.onClick = () => setActiveTab("json");
         }
-        // disabilita visibilità tab
+        // disable tab visibility
         if (mergedProps.className?.includes("dicom-view") && activeTab !== "dicom") {
           return null;
         }

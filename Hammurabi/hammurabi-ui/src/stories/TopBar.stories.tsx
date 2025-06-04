@@ -72,10 +72,10 @@ const meta: Meta<TopBarProps & { email: string; given: string; family: string }>
       },
     ],
     argTypes: {
-      /* --- Mock utente --- */
-      email: { control: 'text', description: 'Email utente mock' },
-      given: { control: 'text', description: 'Nome utente mock' },
-      family: { control: 'text', description: 'Cognome utente mock' },
+      /* --- Mock user --- */
+      email: { control: 'text', description: 'Mock user email' },
+      given: { control: 'text', description: 'Mock user first name' },
+      family: { control: 'text', description: 'Mock user last name' },
 
       /* --- Prop TopBar --- */
       showLogo: { control: 'boolean' },
@@ -88,7 +88,7 @@ const meta: Meta<TopBarProps & { email: string; given: string; family: string }>
       logoSrc: { control: 'text' },
       userIconSrc: { control: 'text' },
       logoLinkUrl: { control: 'text' },
-      /* onLogout e rightSlot disabilitati nei controls */
+      /* onLogout and rightSlot disabled in controls */
       onLogout: { table: { disable: true } },
       rightSlot: { table: { disable: true } },
     },
@@ -102,7 +102,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Interattiva: Story = {
   args: {
-    /* --- mock utente --- */
+    /* --- mock user --- */
     email: 'demo@local',
     given: 'Demo',
     family: 'User',

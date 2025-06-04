@@ -7,12 +7,12 @@ interface JSONEditorProps {
 }
 
 const JSONEditor: React.FC<JSONEditorProps> = ({ defaultValue, onChange }) => {
-  // Stato locale del testo JSON (formattato inizialmente con indentazione)
+  // Local state of the JSON text (initially formatted with indentation)
   const [text, setText] = useState<string>(
     JSON.stringify(defaultValue ?? {}, null, 2)
   );
 
-  // Effettua il parse del JSON ad ogni modifica del testo (con debounce naturale via useMemo)
+  // Parse the JSON on each text change (naturally debounced via useMemo)
   const parsed = useMemo(() => {
     try {
       return JSON.parse(text);
@@ -21,7 +21,7 @@ const JSONEditor: React.FC<JSONEditorProps> = ({ defaultValue, onChange }) => {
     }
   }, [text]);
 
-  // Chiama il callback onChange se il JSON è valido
+  // Call the onChange callback if the JSON is valid
   useEffect(() => {
     if (onChange) {
       onChange(parsed);

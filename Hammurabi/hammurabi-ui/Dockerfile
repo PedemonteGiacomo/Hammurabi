@@ -17,7 +17,7 @@ RUN npm ci --legacy-peer-deps
 COPY . .
     
     # Espone la versione al processo di build CRA
-    #   👉 sarà disponibile in React come process.env.REACT_APP_VERSION
+    #   👉 will be available in React as process.env.REACT_APP_VERSION
 ENV REACT_APP_VERSION=$VERSION_INFO
     
     # IMPORTANT: non usare .env qui – le variabili runtime saranno iniettate
