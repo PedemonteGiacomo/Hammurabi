@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import aws_cdk as cdk
 
-# Import del CdkGraph e del plugin "diagram"
+# Import CdkGraph and the "diagram" plugin
 from aws_pdk.cdk_graph import CdkGraph, FilterPreset
 from aws_pdk.cdk_graph_plugin_diagram import CdkGraphDiagramPlugin
 
@@ -10,48 +10,47 @@ from react_ecs_complete_cdk.react_ecs_complete_cdk_stack import ReactCdkComplete
 def main():
     app = cdk.App()
 
-    # 1) Istanzia lo stack (già esistente)
+    # 1) Instantiate the existing stack
     ReactCdkCompleteStack(
         app,
         "ReactCdkCompleteStack",
         env=cdk.Environment(account="544547773663", region="us-east-1"),
     )
 
-    # 2) Istanzia CdkGraph passando i parametri al plugin come keyword args
+    # 2) Instantiate CdkGraph passing parameters to the plugin as keyword args
     #
-    # - defaults: definisce i valori di default usati da tutti i diagrammi
-    #   (qui forziamo il filterPlan = COMPACT, cioè mostra solo le risorse "core"
-    #    senza quelle di basso livello)
-    # - theme: tema "dark" (puoi cambiare in "light" se preferisci)
+    # - defaults: defines the default values used by all diagrams
+    #   (here we force filterPlan = COMPACT, which shows only the core resources
+    #    without the low‑level ones)
+    # - theme: "dark" theme (change to "light" if you prefer)
     #
-    # - diagrams: lista di oggetti, ognuno con un "name" e un "title". Se non
-    #   definisci filterPlan all'interno di un singolo diagramma, verrà usato
-    #   quello definito in "defaults".
+    # - diagrams: list of objects, each with a "name" and "title". If you do not
+    #   define filterPlan inside a diagram, the one from "defaults" is used.
     graph = CdkGraph(
         app,
         plugins=[
             CdkGraphDiagramPlugin(
                 defaults={
                     "filter_plan": {
-                        # Qui usiamo "COMPACT"
+                        # Using "COMPACT" here
                         "preset": FilterPreset.COMPACT,
                     },
-                    # Tema di default per i diagrammi
+                    # Default theme for diagrams
                     "theme": "dark"
                 },
                 diagrams=[
                     {
-                        # Nome del primo (e unico) diagramma
+                        # Name of the first (and only) diagram
                         "name": "compact-diagram",
-                        "title": "Architettura Compatta",
-                        # Non serve ridefinire filterPlan e theme, perché eredita le defaults
+                        "title": "Compact Architecture",
+                        # No need to redefine filterPlan and theme, it inherits the defaults
                     }
                 ]
             )
         ],
     )
 
-    # 3) Synth di CDK e generazione del (o dei) diagramma(i)
+    # 3) CDK synth and diagram generation
     app.synth()
     graph.report()
 

@@ -1,22 +1,22 @@
 export type DeviceVariant = 'mobile' | 'tablet' | 'desktop';
 
 export interface SchemaComponent {
-  /** Nome del componente React da istanziare (chiave in componentRegistry) */
+  /** Name of the React component to instantiate (key in componentRegistry) */
   name: string;
-  /** Props statiche da passare al componente */
+  /** Static props to pass to the component */
   props?: Record<string, any>;
-  /** Override di props per ciascuna variante di device */
+  /** Prop overrides for each device variant */
   variants?: Record<DeviceVariant, Record<string, any>>;
-  /** Se presente, lista di device su cui renderizzare */
+  /** If present, list of devices on which to render */
   visibleOn?: DeviceVariant[];
-  /** Figli annidati, se è un contenitore */
+  /** Nested children if this is a container */
   children?: SchemaComponent[];
 }
 
 export interface PageSchema {
-  /** Percorso React Router */
+  /** React Router path */
   path: string;
-  /** Lista (in ordine) di componenti/controlli da montare nella pagina */
+  /** Ordered list of components/controls to mount in the page */
   components: SchemaComponent[];
 }
 

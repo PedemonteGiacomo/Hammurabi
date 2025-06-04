@@ -7,7 +7,7 @@
 }
 
 :root {
-  /* Somma delle tre barre fisse: 60 (TopBar) + 50 (InfoRow) + 60 (Toolbar) */
+  /* Sum of the three fixed bars: 60 (TopBar) + 50 (InfoRow) + 60 (Toolbar) */
   --header-stack: 174px;
 }
 
@@ -18,11 +18,11 @@ body {
   color: #ffffff;
   font-family: 'Aptos', sans-serif;
   overflow: hidden;
-  /* pagina stessa non scrolla */
+  /* page itself does not scroll */
 }
 
 /* ==========================================================================
-   TOP BAR (Logo, Versione, Utente)
+   TOP BAR (Logo, Version, User)
    ========================================================================== */
 .topbar-container {
   background-color: #c2181e;
@@ -326,7 +326,7 @@ body {
   width: 100%;
   word-break: break-all;
   overflow-wrap: anywhere;
-  /* fallback più moderno */
+  /* more modern fallback */
 }
 
 .dicom-metadata-panel .form-check-input {
@@ -355,11 +355,11 @@ body {
 
   body {
     overflow: auto;
-    /* permetto scroll su mobile se necessario */
+    /* allow scroll on mobile when necessary */
   }
 }
 
-/* forza testo nero e sfondo bianco negli input del Navigation */
+/* enforce black text and white background on Navigation inputs */
 .viewer-navigation input {
   background-color: #fff !important;
   color: #000 !important;
@@ -380,29 +380,29 @@ body {
   margin: 0;
 }
 
-/* rendi i box delle categorie bianchi anziché trasparenti sul pink */
+/* make category boxes white instead of transparent on pink */
 .dicom-metadata-panel section {
   background-color: #ffffff;
-  color: #000000;            /* testo nero */
-  border: 1px solid #ccc;    /* già li avevi, mantiene il bordo grigio */
+  color: #000000;            /* black text */
+  border: 1px solid #ccc;    /* already present, keeps the grey border */
   border-radius: 4px;
-  padding: 0.75rem;          /* un po’ di padding in più */
+  padding: 0.75rem;          /* a little extra padding */
   margin-bottom: 1rem;
 }
 
-/* assicuriamoci che anche le tabelle interne siano bianche */
+/* ensure internal tables are also white */
 .dicom-metadata-panel section table {
   background-color: #ffffff;
   color: #000000;
 }
 
-/* aggiunge una linea verticale di separazione tra le due colonne */
+/* add a vertical separator between the two columns */
 .dicom-metadata-panel section table td:first-child {
   border-right: 1px solid #ddd;
-  padding-right: 1rem;  /* un po’ di spazio dopo la colonna chiave */
+  padding-right: 1rem;  /* a bit of space after the key column */
 }
 
-/* un piccolo padding anche nella seconda colonna */
+/* a little padding also in the second column */
 .dicom-metadata-panel section table td:last-child {
   padding-left: 1rem;
 }

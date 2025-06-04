@@ -172,7 +172,7 @@ jobs:
         echo "Deployment Group:       $DG"
         
     #---------------------------------------------------------------
-    # 8) Registra una nuova task‑definition
+    # 8) Register a new task definition
     #---------------------------------------------------------------
     - name: Register new task definition
       id: register

@@ -1,36 +1,36 @@
 /* ------------------------------------------------------------------ */
-/*  TopBar.tsx – versione full-props                                  */
+/*  TopBar.tsx – full-props version                                  */
 /* ------------------------------------------------------------------ */
 import React, { useState, useRef, useEffect, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
 export interface TopBarProps {
-  /* ----------- visibilità elementi ----------- */
+  /* ----------- element visibility ----------- */
   showLogo?: boolean;
   showVersion?: boolean;
 
-  /** Stile menù utente:
-   *  • "full"        → icona + dropdown con email + nome
-   *  • "dropdown"    → icona + dropdown soltanto con email
-   *  • "icon-only"   → solo icona, niente dropdown
+  /** User menu style:
+   *  • "full"        → icon + dropdown with email and name
+   *  • "dropdown"    → icon + dropdown with email only
+   *  • "icon-only"   → icon only, no dropdown
    */
   userMenuStyle?: 'full' | 'dropdown' | 'icon-only';
 
-  /* --------------- override asset ------------- */
+  /* --------------- asset overrides ------------- */
   logoSrc?: string;
   userIconSrc?: string;
 
-  /* --------------- altri override ------------- */
+  /* --------------- other overrides ------------- */
   logoLinkUrl?: string;
   buildVersionOverride?: string;
   className?: string;
   style?: React.CSSProperties;
 
-  /** Callback logout custom (default = redirect Cognito) */
+  /** Custom logout callback (default = Cognito redirect) */
   onLogout?: () => void;
 
-  /** Slot per elementi extra (es. pulsanti) */
+  /** Slot for extra elements (e.g. buttons) */
   rightSlot?: ReactNode;
 }
 
@@ -56,14 +56,14 @@ const TopBar: React.FC<TopBarProps> = ({
     if (userMenuStyle !== 'icon-only') setDropdownVisible((prev) => !prev);
   };
 
-  /* --------------------  versione di build  -------------------- */
+  /* --------------------  build version  -------------------- */
   const buildVersion =
     buildVersionOverride ??
     (window as any)._env_?.BUILD_VERSION ??
     process.env.REACT_APP_VERSION ??
     'dev';
 
-  /* -------------  chiudi dropdown se clic fuori  --------------- */
+  /* -------------  close dropdown on outside click  --------------- */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -106,7 +106,7 @@ const TopBar: React.FC<TopBarProps> = ({
           </Link>
         )}
 
-        {/* spacer + versione */}
+        {/* spacer + version */}
         <div className="topbar-spacer" />
         {showVersion && <span className="build-badge">v{buildVersion}</span>}
 

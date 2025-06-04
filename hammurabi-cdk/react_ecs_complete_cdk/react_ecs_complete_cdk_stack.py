@@ -115,7 +115,7 @@ class ReactCdkCompleteStack(Stack):
                 image=ecs.ContainerImage.from_ecr_repository(repository, tag=image_tag),
                 container_port=80,
                 environment={
-                    # placeholder – sarà sovrascritto più avanti
+                    # placeholder – will be overwritten later
                     "REACT_APP_COGNITO_USER_POOL_ID": "PLACEHOLDER",
                     "REACT_APP_COGNITO_CLIENT_ID": "PLACEHOLDER",
                     "REACT_APP_COGNITO_REGION": self.region,
