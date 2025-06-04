@@ -109,6 +109,19 @@ export default HelloPage;
 
 ### 4.b  Register the page in **SchemaRenderer**
 
+`src/components/SchemaRenderer.tsx`
+
+```tsx
+import HelloPage from "../pages/HelloPage";   // ← NEW
+
+const registry: Record<string, React.FC<any>> = {
+  SelectionPage,
+  ViewerPage,
+  HelloPage,           // ← NEW
+};
+```
+### 4.b  Register the page in **SchemaRenderer**
+
 Add commentMore actions
 `src/components/SchemaRenderer.tsx`
 
