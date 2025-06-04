@@ -325,7 +325,7 @@ export const FrameViewport: React.FC<Props> = memo(
     }, [viewportSize]);
 
     function getImagePosition(
-      ev: React.MouseEvent | React.Touch | MouseEvent,
+      ev: React.MouseEvent | Touch | MouseEvent,
     ): Point {
       const rect = canvasRef.current!.parentElement!.getBoundingClientRect();
       const { left, top } = rect;

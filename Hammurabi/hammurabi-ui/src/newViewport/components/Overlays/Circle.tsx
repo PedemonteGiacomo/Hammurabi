@@ -1,4 +1,4 @@
-import { use, memo } from "react";
+import { useContext, memo } from "react";
 import { applyToPoint } from "transformation-matrix";
 import { ViewportContext } from "../FrameViewport";
 
@@ -22,7 +22,7 @@ export const Circle: React.FC<Props> = memo(function Circle(props) {
     ...rest
   } = props;
 
-  const { matrix, zoomPanMatrix } = use(ViewportContext);
+  const { matrix, zoomPanMatrix } = useContext(ViewportContext);
   const imagePoint = { x: +cx, y: +cy };
   const screenPoint = applyToPoint(matrix, imagePoint);
   const radius = fixedSize ? r : (r as number) * zoomPanMatrix.a;

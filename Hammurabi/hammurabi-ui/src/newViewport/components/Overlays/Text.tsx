@@ -1,4 +1,4 @@
-import { use, memo } from "react";
+import { useContext, memo } from "react";
 import { applyToPoint } from "transformation-matrix";
 import { ViewportContext } from "../FrameViewport";
 
@@ -18,7 +18,7 @@ export const Text: React.FC<Props> = memo(function Text(props) {
     transformY = 0,
   } = props;
 
-  const { matrix } = use(ViewportContext);
+  const { matrix } = useContext(ViewportContext);
   const imagePoint = { x: +x, y: +y };
   const screenPoint = applyToPoint(matrix, imagePoint);
 

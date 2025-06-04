@@ -1,4 +1,4 @@
-import { use, memo } from "react";
+import { useContext, memo } from "react";
 import { applyToPoint } from "transformation-matrix";
 import { ViewportContext } from "../FrameViewport";
 
@@ -19,7 +19,7 @@ export const Image: React.FC<Props> = memo(function Image(props) {
     ...rest
   } = props;
 
-  const { matrix } = use(ViewportContext);
+  const { matrix } = useContext(ViewportContext);
   const leftTop = { x: +x, y: +y };
   const rightBottom = { x: +x + +width, y: +y + +height };
   const leftTopPoint = applyToPoint(matrix, leftTop);
