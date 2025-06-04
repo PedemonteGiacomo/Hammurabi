@@ -107,11 +107,20 @@ export default HelloPage;
 }
 ```
 
-### 4.b  Register the page
+### 4.b  Register the page in **SchemaRenderer**
 
-Pages and components are now auto‑discovered. Simply drop a React component
-under `src/pages` with a default export and it will be picked up automatically
-– no changes to `SchemaRenderer` are required.
+Add commentMore actions
+`src/components/SchemaRenderer.tsx`
+
+```tsx
+import HelloPage from "../pages/HelloPage";   // ← NEW
+
+const registry: Record<string, React.FC<any>> = {
+  SelectionPage,
+  ViewerPage,
+  HelloPage,           // ← NEW
+};
+```
 
 Run the dev server and visit **/hello** – the widget is live.
 
