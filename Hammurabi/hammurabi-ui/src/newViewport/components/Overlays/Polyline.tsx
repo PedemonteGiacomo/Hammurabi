@@ -1,4 +1,4 @@
-import { use, memo } from "react";
+import { useContext, memo } from "react";
 import { applyToPoint } from "transformation-matrix";
 import { ViewportContext } from "../FrameViewport";
 
@@ -19,7 +19,7 @@ export const Polyline: React.FC<Props> = memo(function Polyline(props) {
     transformY = 0,
   } = props;
 
-  const { matrix } = use(ViewportContext);
+  const { matrix } = useContext(ViewportContext);
   const screenPoints = (points ?? "")
     .split(" ")
     .reduce((prv, cur) => {
