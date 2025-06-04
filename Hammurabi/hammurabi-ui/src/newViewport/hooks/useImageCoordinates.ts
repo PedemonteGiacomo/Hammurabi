@@ -1,4 +1,4 @@
-import { RefObject, use, useRef, useCallback } from "react";
+import { RefObject, useContext, useRef, useCallback } from "react";
 import { applyToPoint, inverse } from "transformation-matrix";
 import { ViewportContext } from "../components/FrameViewport";
 import { Point, Size } from "../types";
@@ -17,7 +17,7 @@ export type ToImage = (
  * that converts a mouse (or pointer) event to an image position.
  */
 const useImageCoordinates: UseImageCoordinates = (overlay) => {
-  const context = use(ViewportContext);
+  const context = useContext(ViewportContext);
   const contextRef = useRef(context);
   contextRef.current = context;
 
