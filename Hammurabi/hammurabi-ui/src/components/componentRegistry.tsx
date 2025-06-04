@@ -1,8 +1,10 @@
-// Automatically discover all components in this folder and register them by
-// filename. Any file exporting a default React component will be available to
-// the schema without manual edits.
-
-// Webpack provides `require.context`, but during tests `require.context` may be
+if (typeof requireContext !== "function" && process.env.NODE_ENV === "test") {
+  try {
+    require("ts-node/register/transpile-only");
+  } catch {}
+      .filter((f: string) => regex.test("./" + f))
+      .map((f: string) => "./" + f);
+ctx.keys().forEach((k: string) => {
 // undefined. Provide a small fallback that loads files synchronously from this
 // directory when running under Node.
 let requireContext: any = (require as any).context;

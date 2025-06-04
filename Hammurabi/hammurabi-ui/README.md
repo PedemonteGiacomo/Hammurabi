@@ -12,7 +12,7 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 In the `hammurabi-ui` directory, run:
 
-### `npm install &&  npm install @craco/craco --save && npm install path-browserify && npm start`
+### `npm install && npm start`
 
 This will install the necessary dependencies and run the app in development mode.
 
