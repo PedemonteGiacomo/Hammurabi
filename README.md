@@ -1,4 +1,6 @@
 # Hammurabi Codebase Overview
+
+
 This repository contains a React application for viewing DICOM images and the AWS infrastructure required to deploy it. The project is divided into a UI package, a CDK stack and a small utility script.
 
 ## Repository layout
