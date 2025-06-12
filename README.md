@@ -83,4 +83,5 @@ dependencies and fetches Node packages for the React front‑end.
 
 This README serves as a starting point for developers picking up the project and as a summary of the current implementation.
 
-##### New Update
+# Last commit
+Latest version before demo
