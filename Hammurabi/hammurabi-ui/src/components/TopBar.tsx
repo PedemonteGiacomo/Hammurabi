@@ -49,6 +49,20 @@ const TopBar: React.FC<TopBarProps> = ({
 }) => {
   const auth = useAuth();
 
+  // Supporto mock user in locale
+  const buildVersion = (window as any)._env_?.BUILD_VERSION;
+  let userMock = null;
+  if (buildVersion === 'mock') {
+    userMock = {
+      profile: {
+        email: 'demo@local',
+        given_name: 'Demo',
+        family_name: 'User',
+      },
+    };
+  }
+  const user = buildVersion === 'mock' ? userMock : auth.user;
+
   /* -------------------------  UI state  ------------------------ */
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -57,9 +71,10 @@ const TopBar: React.FC<TopBarProps> = ({
   };
 
   /* --------------------  build version  -------------------- */
-  const buildVersion =
+  // buildVersion ora è già dichiarata sopra per mock e per badge
+  const buildVersionFinal =
     buildVersionOverride ??
-    (window as any)._env_?.BUILD_VERSION ??
+    buildVersion ??
     process.env.REACT_APP_VERSION ??
     'dev';
 
@@ -108,7 +123,7 @@ const TopBar: React.FC<TopBarProps> = ({
 
         {/* spacer + version */}
         <div className="topbar-spacer" />
-        {showVersion && <span className="build-badge">v{buildVersion}</span>}
+        {showVersion && <span className="build-badge">v{buildVersionFinal}</span>}
 
         {/* slot opzionale (es. pulsanti extra) */}
         {rightSlot}
@@ -127,17 +142,17 @@ const TopBar: React.FC<TopBarProps> = ({
             <div ref={dropdownRef} className="topbar-dropdown">
               {userMenuStyle === 'full' && (
                 <div style={{ marginBottom: '0.5rem', color: 'black' }}>
-                  <strong>{auth.user?.profile.email}</strong>
+                  <strong>{user?.profile.email}</strong>
                   <br />
                   <strong>
-                    {auth.user?.profile.given_name}{' '}
-                    {auth.user?.profile.family_name}
+                    {user?.profile.given_name}{' '}
+                    {user?.profile.family_name}
                   </strong>
                 </div>
               )}
               {userMenuStyle === 'dropdown' && (
                 <div style={{ marginBottom: '0.5rem', color: 'black' }}>
-                  <strong>{auth.user?.profile.email}</strong>
+                  <strong>{user?.profile.email}</strong>
                 </div>
               )}
               <button className="logout-btn" onClick={handleLogout}>

@@ -17,17 +17,43 @@ const cognitoAuthConfig = {
   scope: window._env_.REACT_APP_COGNITO_SCOPE || '',
 };
 
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-root.render(
-  <AuthProvider {...cognitoAuthConfig}>
-    <ChakraProvider resetCSS={false}>
-      <App />
-    </ChakraProvider>
-  </AuthProvider>
-);
+const buildVersion = window._env_.BUILD_VERSION;
 
-// ...dopo il render di ReactDOM...
+if (buildVersion === 'mock') {
+  // AuthProvider mock: utente sempre autenticato
+  const mockAuth = {
+    isAuthenticated: true,
+    isLoading: false,
+    user: {
+      profile: {
+        email: 'demo@local',
+        given_name: 'Demo',
+        family_name: 'User',
+      },
+    },
+    signinRedirect: () => Promise.resolve(),
+    signoutRedirect: () => Promise.resolve(),
+  };
+  root.render(
+    <ChakraProvider resetCSS={false}>
+      <AuthProvider {...mockAuth}>
+        <App />
+      </AuthProvider>
+    </ChakraProvider>
+  );
+} else {
+  root.render(
+    <AuthProvider {...cognitoAuthConfig}>
+      <ChakraProvider resetCSS={false}>
+        <App />
+      </ChakraProvider>
+    </AuthProvider>
+  );
+}
+
 reportWebVitals(console.log);

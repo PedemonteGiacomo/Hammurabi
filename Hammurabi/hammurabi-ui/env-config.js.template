@@ -1,14 +1,9 @@
-// env-config.js.template
-// This file is NOT used directly. An entrypoint script will run 'envsubst' on it,
-// creating a real /usr/share/nginx/html/env-config.js at container startup.
-
 window._env_ = {
-  // Each line references an environment variable that you want to inject at runtime.
-  REACT_APP_COGNITO_AUTHORITY: "${REACT_APP_COGNITO_AUTHORITY}",
-  REACT_APP_COGNITO_CLIENT_ID: "${REACT_APP_COGNITO_CLIENT_ID}",
-  REACT_APP_COGNITO_REDIRECT_URI: "${REACT_APP_COGNITO_REDIRECT_URI}",
-  REACT_APP_COGNITO_SCOPE: "${REACT_APP_COGNITO_SCOPE}",
-  REACT_APP_LOGOUT_URI: "${REACT_APP_LOGOUT_URI}",
-  REACT_APP_COGNITO_DOMAIN: "${REACT_APP_COGNITO_DOMAIN}",
-  BUILD_VERSION: "${BUILD_VERSION}",
+  REACT_APP_COGNITO_AUTHORITY: "http://localhost/mock-auth",
+  REACT_APP_COGNITO_CLIENT_ID: "local-client-id",
+  REACT_APP_COGNITO_REDIRECT_URI: "http://localhost",
+  REACT_APP_COGNITO_SCOPE: "profile openid email",
+  REACT_APP_LOGOUT_URI: "http://localhost/logout",
+  REACT_APP_COGNITO_DOMAIN: "http://localhost/mock-cognito",
+  BUILD_VERSION: "local",
 };

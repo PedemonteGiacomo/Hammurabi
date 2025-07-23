@@ -59,11 +59,16 @@ jobs:
     #---------------------------------------------------------------
     # 5) CDK deploy (infra)
     #---------------------------------------------------------------
-    - name: CDK bootstrap (idempotente)
+    - name: CDK bootstrap
       working-directory: hammurabi-cdk
       run: |
-        cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/${{ secrets.AWS_REGION }} --require-approval never
-
+        cdk bootstrap \
+          --force \
+          --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess \
+          --trust ${{ secrets.GH_OIDC_ROLE_ARN }} \
+          aws://${{ secrets.AWS_ACCOUNT_ID }}/${{ secrets.AWS_REGION }} \
+          --require-approval never
+    
     - name: CDK deploy (infra only)
       working-directory: hammurabi-cdk
       run: |

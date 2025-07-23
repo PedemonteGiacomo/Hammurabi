@@ -11,11 +11,17 @@ function App() {
   const auth = useAuth();
   const [userProfile, setUserProfile] = useState<any>(null); // local state if we need user data
 
+  const buildVersion = window._env_?.BUILD_VERSION;
+
   useEffect(() => {
-    if (!auth.isLoading && !auth.isAuthenticated) {
+    if (
+      buildVersion !== 'mock' &&
+      !auth.isLoading &&
+      !auth.isAuthenticated
+    ) {
       auth.signinRedirect();
     }
-  }, [auth]);
+  }, [auth, buildVersion]);
 
   // When the user information is available, store it in local state
   useEffect(() => {

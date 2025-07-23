@@ -4,11 +4,11 @@
 
 window._env_ = {
   // Each line references an environment variable that you want to inject at runtime.
-  REACT_APP_COGNITO_AUTHORITY: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_tkXJ5n9B4",
-  REACT_APP_COGNITO_CLIENT_ID: "4po1luage9o30sjh85stv5c1pg",
+  REACT_APP_COGNITO_AUTHORITY: "https://mock-cognito-authority.auth.us-east-1.amazoncognito.com",
+  REACT_APP_COGNITO_CLIENT_ID: "mock-client-id",
   REACT_APP_COGNITO_REDIRECT_URI: "http://localhost",
   REACT_APP_COGNITO_SCOPE: "profile openid email",
   REACT_APP_LOGOUT_URI: "http://localhost/aws-signout",
-  REACT_APP_COGNITO_DOMAIN: "https://auth-app-544547773663.auth.us-east-1.amazoncognito.com",
-  BUILD_VERSION: "local",
+  REACT_APP_COGNITO_DOMAIN: "https://mock-cognito-domain.auth.us-east-1.amazoncognito.com",
+  BUILD_VERSION: "mock",
 };
