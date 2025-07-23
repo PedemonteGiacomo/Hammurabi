@@ -62,11 +62,10 @@ jobs:
     - name: CDK bootstrap (idempotente)
       run: |
         cd hammurabi-cdk
-        cdk bootstrap aws://$AWS_ACCOUNT_ID/$AWS_REGION --require-approval never
+        cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/${{ secrets.AWS_REGION }} --require-approval never
 
     - name: CDK deploy (infra only)
       run: |
-        cd hammurabi-cdk
         cdk deploy $STACK_NAME \
           -c imageTag=${{ steps.build.outputs.tag }} \
           --require-approval never
