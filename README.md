@@ -57,6 +57,16 @@ pip install -r requirements.txt
 cdk deploy ReactCdkCompleteStack
 ```
 
+For Windows:
+
+```bash
+cd hammurabi-cdk
+python -m venv .venv 
+.venv/Scripts/activate
+pip install -r requirements.txt
+cdk deploy ReactCdkCompleteStack
+```
+
 ### Quick setup
 
 Run `setup_env.sh` from the repository root to prepare both the CDK and UI
@@ -84,4 +94,4 @@ dependencies and fetches Node packages for the React front‑end.
 This README serves as a starting point for developers picking up the project and as a summary of the current implementation.
 
 # Last commit
-Latest version before demo
+Last try 23-07
