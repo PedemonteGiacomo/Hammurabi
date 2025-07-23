@@ -59,20 +59,17 @@ jobs:
     #---------------------------------------------------------------
     # 5) CDK deploy (infra)
     #---------------------------------------------------------------
-    # Step bootstrap (opzionale, idempotente)
-    - name: CDK bootstrap
-      working-directory: hammurabi-cdk   # <‑‑ o "cd hammurabi-cdk" nel run
+    - name: CDK bootstrap (idempotente)
+      working-directory: hammurabi-cdk
       run: |
-        cdk bootstrap aws://$AWS_ACCOUNT_ID/$AWS_REGION --require-approval never
+        cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/${{ secrets.AWS_REGION }} --require-approval never
 
-    # Step deploy
     - name: CDK deploy (infra only)
-      working-directory: hammurabi-cdk   # idem qui
+      working-directory: hammurabi-cdk
       run: |
         cdk deploy $STACK_NAME \
           -c imageTag=${{ steps.build.outputs.tag }} \
           --require-approval never
-
     #---------------------------------------------------------------
     # 6) jq
     #---------------------------------------------------------------
