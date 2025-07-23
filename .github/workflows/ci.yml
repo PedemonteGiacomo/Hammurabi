@@ -59,6 +59,11 @@ jobs:
     #---------------------------------------------------------------
     # 5) CDK deploy (infra)
     #---------------------------------------------------------------
+    - name: CDK bootstrap (idempotente)
+      run: |
+        cd hammurabi-cdk
+        cdk bootstrap aws://$AWS_ACCOUNT_ID/$AWS_REGION --require-approval never
+
     - name: CDK deploy (infra only)
       run: |
         cd hammurabi-cdk
