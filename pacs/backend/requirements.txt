@@ -1,0 +1,6 @@
+aws-cdk-lib==2.186.0
+constructs==10.4.2
+aws-pdk==0.26.14
+aws-cdk.aws-cognito-identitypool-alpha==2.186.0a0
+cdk-nag==2.36.44
+boto3
