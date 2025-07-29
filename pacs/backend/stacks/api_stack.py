@@ -1,58 +1,44 @@
-from aws_cdk import Stack, CfnOutput
-from aws_cdk import aws_apigateway as apigateway
-from aws_cdk import aws_cognito as cognito
-from aws_cdk import aws_lambda as _lambda
+from aws_cdk import (
+    Stack,
+    aws_ecs as ecs,
+    aws_ecs_patterns as ecs_patterns,
+    aws_logs as logs,
+    aws_iam as iam,
+)
 from constructs import Construct
-import os
 
 class ApiStack(Stack):
-
-    def __init__(self, scope: Construct, construct_id: str,
-                 user_pool: cognito.UserPool,
-                 user_pool_client: cognito.UserPoolClient,
-                 **kwargs):
+    def __init__(self, scope: Construct, construct_id: str, vpc, dicom_bucket, dicom_table, dicom_policy, **kwargs):
         super().__init__(scope, construct_id, **kwargs)
 
-        # Lambda backend
-        lambda_fn = _lambda.Function(
-            self, "PacsBackendHandler",
-            runtime=_lambda.Runtime.PYTHON_3_11,
-            handler="app.handler",
-            code=_lambda.Code.from_asset("../"),
-            environment={
-                "REGION": os.getenv("REGION", "us-east-1"),
-                "USERPOOL_ID": user_pool.user_pool_id,
-                "CLIENT_ID": user_pool_client.user_pool_client_id
-            },
-            memory_size=512,
-            timeout=30
+        # ECS Cluster
+        cluster = ecs.Cluster(self, "ApiCluster", vpc=vpc)
+
+        # Task Definition
+        task_definition = ecs.FargateTaskDefinition(self, "ApiTaskDef")
+        task_definition.task_role.add_managed_policy(dicom_policy)
+
+        # Container Definition
+        container = task_definition.add_container(
+            "ApiContainer",
+            image=ecs.ContainerImage.from_asset("."),
+            logging=ecs.LogDriver.aws_logs(
+                stream_prefix="Api",
+                log_retention=logs.RetentionDays.ONE_WEEK
+            )
+        )
+        container.add_port_mappings(
+            ecs.PortMapping(container_port=8000)
         )
 
-        # Cognito Authorizer
-        authorizer = apigateway.CognitoUserPoolsAuthorizer(
-            self, "CognitoAuthorizer",
-            cognito_user_pools=[user_pool]
+        # Fargate + Load Balancer
+        service = ecs_patterns.ApplicationLoadBalancedFargateService(
+            self, "ApiFargateService",
+            cluster=cluster,
+            task_definition=task_definition,
+            public_load_balancer=True,
+            desired_count=1,
         )
 
-        # API Gateway
-        api = apigateway.RestApi(
-            self, "PacsApi",
-            rest_api_name="PACS ZeroTrust API",
-            description="API protetta da Cognito per PACS"
-        )
-
-        # /studies endpoint
-        studies = api.root.add_resource("studies")
-        studies.add_method(
-            "GET",
-            apigateway.LambdaIntegration(lambda_fn),
-            authorization_type=apigateway.AuthorizationType.COGNITO,
-            authorizer=authorizer,
-            method_responses=[
-                {"statusCode": "200"},
-                {"statusCode": "401"},
-                {"statusCode": "403"}
-            ]
-        )
-
-        CfnOutput(self, "ApiUrl", value=api.url)
+        # Output: URL pubblico del servizio
+        self.api_url = service.load_balancer.load_balancer_dns_name
