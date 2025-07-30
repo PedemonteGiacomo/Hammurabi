@@ -34,21 +34,24 @@ class InfraPacsStack(Stack):
         # )
         self.table = dynamodb.Table.from_table_name(self, "ImportedTable", "dicom-index")
 
-
         # Policy di accesso comune (es. per Fargate task role)
+        bucket_arn = f"arn:aws:s3:::{os.getenv('S3_BUCKET_NAME')}"
+        bucket_objects_arn = f"{bucket_arn}/*"
+        table_arn = "arn:aws:dynamodb:us-east-1:544547773663:table/dicom-index"
+
         self.dicom_access_policy = iam.ManagedPolicy(
             self, "DicomAccessPolicy",
             statements=[
                 iam.PolicyStatement(
                     actions=["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
                     resources=[
-                        self.bucket.bucket_arn,
-                        f"{self.bucket.bucket_arn}/*",
+                        bucket_arn,
+                        bucket_objects_arn,
                     ]
                 ),
                 iam.PolicyStatement(
                     actions=["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:Scan"],
-                    resources=[self.table.table_arn]
+                    resources=[table_arn]
                 )
             ]
         )
